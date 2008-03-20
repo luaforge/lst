@@ -1,0 +1,28 @@
+External Dependencies
+=====================
+
+The following are the current known dependencies lst has on 3rd party software,
+and the version of each.  lst may work with later releases of these
+dependencies, but I can't guarantee it.
+
+  Lua 5.1.x - http://www.lua.org/
+
+  LPeg 0.8  - http://www.inf.puc-rio.br/~roberto/lpeg/
+
+
+Building
+========
+
+make
+make check
+make install
+
+
+Notes
+=====
+
+Running 'make check' will run a suite of lunit (http://www.mroth.net/lunit/)
+unit tests.  Rather than make it a separate dependency, lunit 0.4 has been
+included directly in the src/tests directory.  This ensures that the unit tests
+can always be run, which hopefully means they will be run often.
+

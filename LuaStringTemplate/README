@@ -1,0 +1,27 @@
+lst - LuaStringTemplate
+========================
+
+This project is a Lua port of StringTemplate[1], a popular and powerful Java
+template engine.  This will incrementally support various StringTemplate
+features.  As of this writting the current version of StringTemplate is 3.1.  I
+expect it will take several releases of lst before it has the same capabilities
+as the original.
+
+
+Supported Template File Syntax
+==============================
+
+TODO - Detail the exact supported template group file syntax.
+
+
+Using lst
+=========
+
+TODO - Provide detailed examples of how lst is used from within a Lua script.
+
+
+References
+==========
+
+[1] http://www.stringtemplate.org/
+

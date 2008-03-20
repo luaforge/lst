@@ -1,0 +1,48 @@
+Attribute
+
+	"Something" that has a string value, or has properties with a string
+	value.  This terminology comes from StringTemplate, where an attribute
+	is an object that has a ToString() method.  An attribute can be
+	multi-valued; the same attribute name refers to a list of individual
+	objects.
+
+	In LuaStringTemplate an attribute is typically a string or a table.
+
+	TODO - Need examples of attributes.
+
+Group
+
+	A collection of templates.  They can be multiple template files in a
+	directory tree, or a single group file with multiple template
+	definitions.
+
+lst
+	See LuaStringTemplate.  'lst' is the short form of the project name for
+	use in LuaForge.
+
+LuaStringTemplate
+
+	The Lua port of StringTempalte, hosted at LuaForge.
+
+	http://lst.luaforge.net/
+	http://luaforge.net/projects/lst/
+
+StringTemplate
+
+	The original Java StringTemplate engine with ports in Python and C#,
+	"for generating source code, web pages, emails, or any other formatted
+	text output. StringTemplate is particularly good at multi-targeted code
+	generators, multiple site skins, and internationalization/localization.
+	... Its distinguishing characteristic is that it strictly enforces
+	model-view separation unlike other engines.
+
+	http://www.stringtemplate.org/
+
+Template
+
+	From Wikipedia: any processing element that can be combined with a data
+	model and processed by a template engine to produce a result document.
+
+	You can think of it as a "document with holes," or as a way to describe
+	an output grammar.
+
