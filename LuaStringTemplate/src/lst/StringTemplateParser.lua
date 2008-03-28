@@ -70,9 +70,11 @@ local scanner = {
     NEWLINE = lpeg.S'\n\r',
     SPACE = lpeg.S' \t',
     SEMI = lpeg.S';',
+    COMMA = lpeg.S',',
     SEPARATOR = lpeg.P'separator',
     EQUALS = lpeg.P'=',
-    DQUOTE = lpeg.S'"'
+    DQUOTE = lpeg.S'"',
+    NULL = lpeg.P'null'
 }
 
 local escapes = {
@@ -113,6 +115,13 @@ local grammar = {
     AttrRef = lpeg.C((1 - (ActionEnd + scanner.SEMI))^1),
     AttrSep = scanner.SEMI * 
                 scanner.SPACE *
+                ((scanner.NULL *
+                 scanner.EQUALS *
+                 scanner.DQUOTE *
+                 (1 - scanner.DQUOTE)^0 *
+                 scanner.DQUOTE *
+                 scanner.COMMA *
+                 scanner.SPACE^0)^-1) *
                 scanner.SEPARATOR * 
                 scanner.EQUALS *
                 scanner.DQUOTE *

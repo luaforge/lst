@@ -162,3 +162,35 @@ function testEvalSepWithoutAttr()
     assert_false(ok)
 end
 
+--[=[
+--  This test requires a bit of explanation.  In the original StringTemplate
+--  language, you can have null values in the list.  They are ignored by default
+--  and produce no output.  You can do $attr; null="-1", separator=","$ to say
+--  "use the string '-1' when you encounter a null."
+--
+--  The thing is, in Lua we use an array to represent multi-valued attributes.
+--  You can't embed a null into the middle of the list, as it is immediately
+--  garbage collected, so suddenly your index numbers skip a value, and ipairs
+--  no longer works past the break.  Also, table.concat is used to concatenate
+--  the values in the array, and it can't handle nulls in the middle of the 
+--  array either.
+--
+--  The upshot is that the null="..." part of an attribute reference will never
+--  be implemented as it is in the original StringTemplate.  However, it should
+--  be parsed and quietly ignored.
+--]=]
+function testEvalIgnoreNull()
+    local st = StringTemplate('one $foo; null="a", separator="?"$ five')
+    local expected = 'one two?three five'
+
+    st['foo'] = { 
+        [1] = 'two', 
+        [2] = 'three', 
+    }
+
+    local actual = tostring(st)
+
+    assert_not_nil(actual)
+    assert_equal(expected, actual)
+end
+
