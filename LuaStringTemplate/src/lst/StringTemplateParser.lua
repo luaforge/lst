@@ -37,48 +37,92 @@ local module = module
 local require = require
 local setmetatable = setmetatable
 local error = error
+local tostring = tostring
+local print = print
 
 module( 'lst.StringTemplateParser' )
 
-local lpeg = require('lpeg') 
+local lpeg = require( 'lpeg' ) 
+local LiteralChunk = require( 'lst.LiteralChunk' )
+local NewlineChunk = require( 'lst.NewlineChunk' )
+local AttrRefChunk = require( 'lst.AttrRefChunk' )
+
+--
+-- The following functions are used in the grammar, and hence need
+-- to be defined before the grammar
+--
+local function newLiteral(text)
+    return LiteralChunk(text)
+end
+
+local function newNewline()
+    return NewlineChunk()
+end
+
+local function newAttrRefAction(attribute, separator)
+    -- print('attr: ' .. tostring(attribute), 'sep: ' .. tostring(separator))
+    return AttrRefChunk(attribute, separator)
+end
 
 local scanner = {
     N = lpeg.R'09',
     AZ = lpeg.R('__','az','AZ','\127\255'),
     NEWLINE = lpeg.S'\n\r',
     SPACE = lpeg.S' \t',
+    SEMI = lpeg.S';',
+    SEPARATOR = lpeg.P'separator',
+    EQUALS = lpeg.P'=',
+    DQUOTE = lpeg.S'"'
 }
 
 local escapes = {
     ['\\$'] = '$'
 }
 
---[[
---  Simplistic PEG that partially describes a StringTemplate
---
---  Template    <- Chunk+ End
---  End         <- !. 
---  Chunk       <- Literal / Action / Newline
---  Newline     <- '\n' / '\r'
---  Action      <- ActionStart (!ActionEnd .)+ ActionEnd
---  ActionStart <- !'\\' '$'
---  ActionEnd   <- '$'
---  Literal     <- ((!Action / !Newline) .)+
---]]
-local Chunk, Newline, Literal, Action, ActionStart, ActionEnd, Escape = 
-    lpeg.V'Chunk', lpeg.V'Newline', lpeg.V'Literal', lpeg.V'Action', lpeg.V'ActionStart', 
-    lpeg.V'ActionEnd', lpeg.V'Escape'
+-- Predeclare the non-terminals
+local Chunk, 
+      Newline, 
+      Literal, 
+      Action, 
+      ActionStart, 
+      ActionEnd, 
+      Escape,
+      AttrRef,
+      AttrSep,
+      AttrRefAction
+      = 
+      lpeg.V'Chunk', 
+      lpeg.V'Newline', 
+      lpeg.V'Literal', 
+      lpeg.V'Action', 
+      lpeg.V'ActionStart', 
+      lpeg.V'ActionEnd', 
+      lpeg.V'Escape',
+      lpeg.V'AttrRef',
+      lpeg.V'AttrSep',
+      lpeg.V'AttrRefAction'
 
 local grammar = {
     "Template",
     Template = lpeg.Ct(Chunk^1) * -1,
     Chunk = Literal + Action + Newline,
-    Newline = lpeg.C(scanner.NEWLINE),
+    Newline = lpeg.C(scanner.NEWLINE) / newNewline,
     Escape = (lpeg.P'\\' * lpeg.S[[$]]) / escapes,
     ActionStart = lpeg.P'$' - lpeg.P'\\',
     ActionEnd = lpeg.P'$',
-    Action = ActionStart * lpeg.C((1 - ActionEnd)^1) * ActionEnd,
-    Literal = lpeg.Cs(((Escape + 1) - (ActionStart + Newline))^1)
+    AttrRef = lpeg.C((1 - (ActionEnd + scanner.SEMI))^1),
+    AttrSep = scanner.SEMI * 
+                scanner.SPACE *
+                scanner.SEPARATOR * 
+                scanner.EQUALS *
+                scanner.DQUOTE *
+                lpeg.C((1 - scanner.DQUOTE)^0) *
+                scanner.DQUOTE,
+    AttrRefAction = ActionStart * 
+                        (AttrRef * AttrSep^-1 / newAttrRefAction) * 
+                        ActionEnd,
+    Action = AttrRefAction,
+    Literal = lpeg.Cs(((Escape + 1) - (ActionStart + Newline))^1) / newLiteral
 }
 
 --[[

@@ -28,66 +28,45 @@
     ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
     POSSIBILITY OF SUCH DAMAGE.
 
-    The implementation of the StringTemplate class.
+    A NewlineChunk represents a \n character in a template.  Since this is 
+    such a common element there isn't any point in creating a new one every
+    time we encounter a newline.  The constructor object will return the same
+    NewlineChunk object every time.
 
 --]]
 
 local module = module
 local require = require
 local setmetatable = setmetatable
-local ipairs = ipairs
-local table_concat = table.concat
-local tostring = tostring
-local error = error
 
-module( 'lst.StringTemplate' )
+module( 'lst.NewlineChunk' )
 
-local STParser = require( 'lst.StringTemplateParser' )
+local function tostring(chunk)
+    return '\n'
+end
 
-local function st_tostring(self)
-    return self:eval()
+local function eq(chunk1, chunk2)
+    return true
 end
 
 local mt = {
-    __tostring = st_tostring
+    __tostring = tostring,
+    __eq = eq
 }
 
-local function eval(self)
-    local result = {}
-
-    for i,chunk in ipairs(self.chunks) do
-        result[i] = tostring(chunk)
-    end
-
-    return table_concat(result)
+local function setEnclosingTemplate(self, template)
+    self.enclosingTemplate = template
 end
 
-function __call(self, templateText)
-    local st = {}
-    setmetatable(st, mt)
+-- This is effectively a Singleton Flyweight
+local nl = { 
+    text = '\n',  
+    setEnclosingTemplate = setEnclosingTemplate
+}
+setmetatable(nl, mt)
 
-    st.eval = eval
-
-    local chunks
-
-    if templateText then
-        local parser = STParser()
-        chunks = parser:parse(templateText)
-        if chunks == nil then
-            error('Failed to parse template', 2)
-        end
-
-        for _,v in ipairs(chunks) do
-            v:setEnclosingTemplate(st)
-        end
-    else
-        chunks = nil
-    end
-
-    st.chunks = chunks
-
-    return st;
+function __call(self)
+    return nl
 end
 
 setmetatable(_M, _M)
-

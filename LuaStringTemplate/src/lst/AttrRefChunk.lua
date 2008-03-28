@@ -28,65 +28,75 @@
     ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
     POSSIBILITY OF SUCH DAMAGE.
 
-    The implementation of the StringTemplate class.
+    An AttrRefChunk does a lookup in the enclosing StringTemplate context
+    for a named attribute and returns that value.
 
 --]]
 
 local module = module
 local require = require
 local setmetatable = setmetatable
-local ipairs = ipairs
-local table_concat = table.concat
 local tostring = tostring
-local error = error
+local string_gmatch = string.gmatch
+local type = type
+local table_concat = table.concat
 
-module( 'lst.StringTemplate' )
+module( 'lst.AttrRefChunk' )
 
-local STParser = require( 'lst.StringTemplateParser' )
+local function arc_tostring(chunk)
+    return chunk:eval()
+end
 
-local function st_tostring(self)
-    return self:eval()
+local function eq(chunk1, chunk2)
+    return chunk1.attribute == chunk2.attribute
+end
+
+local function getField(self)
+    local v = self.enclosingTemplate
+
+    for w in string_gmatch(self.attribute, "[%w_]+") do
+        v = v[w]
+        if not v then break end
+    end
+
+    v = v or ''
+
+    if type(v) == "table" then
+        return table_concat(v, self.separator or '')
+    else
+        return tostring(v)
+    end
 end
 
 local mt = {
-    __tostring = st_tostring
+    __tostring = arc_tostring,
+    __eq = eq
 }
 
 local function eval(self)
-    local result = {}
+    local attr = self.attribute
 
-    for i,chunk in ipairs(self.chunks) do
-        result[i] = tostring(chunk)
+    if self.enclosingTemplate then
+        return getField(self)
+    else
+        return ''
     end
-
-    return table_concat(result)
 end
 
-function __call(self, templateText)
-    local st = {}
-    setmetatable(st, mt)
+local function setEnclosingTemplate(self, template)
+    self.enclosingTemplate = template
+end
 
-    st.eval = eval
+function __call(self, attribute, separator)
+    local ac = {}
+    setmetatable(ac, mt)
+    
+    ac.attribute = attribute
+    ac.separator = separator
+    ac.eval = eval
+    ac.setEnclosingTemplate = setEnclosingTemplate
 
-    local chunks
-
-    if templateText then
-        local parser = STParser()
-        chunks = parser:parse(templateText)
-        if chunks == nil then
-            error('Failed to parse template', 2)
-        end
-
-        for _,v in ipairs(chunks) do
-            v:setEnclosingTemplate(st)
-        end
-    else
-        chunks = nil
-    end
-
-    st.chunks = chunks
-
-    return st;
+    return ac
 end
 
 setmetatable(_M, _M)

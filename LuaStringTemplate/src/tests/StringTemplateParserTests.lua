@@ -31,6 +31,11 @@
     This module tests the low level parsing of a template string into text
     and expression chunks.
 
+    Tests to write:
+
+        * Just text, get a LiteralChunk object.
+        * Multiple lines of test, get multiple LiteralChunk objects
+
 --]]
 
 local require = require
@@ -42,15 +47,34 @@ require( 'lunit' )
 
 module( 'StringTemplateParserTests', lunit.testcase )
 
+local assert_table_equal = function(expected, actual)
+    assert_table(actual)
+    assert_equal(#expected, #actual)
+
+    for i = 1, #expected do
+        -- print(expected[i], actual[i])
+        assert_equal(expected[i], actual[i])
+    end
+end
+
 local STParser = require( 'lst.StringTemplateParser' )
-local parser
+local LiteralChunk = require( 'lst.LiteralChunk' )
+local NewlineChunk = require( 'lst.NewlineChunk' )
+local AttrRefChunk = require( 'lst.AttrRefChunk' )
+local parser, t1, t2, t3, nl, a1
 
 function setup()
     parser = STParser()
+    t1, t2, t3 = LiteralChunk('text1'), LiteralChunk('text2'), LiteralChunk('text3')
+    nl = NewlineChunk()
+    a1 = AttrRefChunk('action1')
 end
 
 function teardown()
     parser = nil
+    t1, t2, t3 = nil, nil, nil
+    nl = nil
+    a1 = nil
 end
 
 function testParseNil()
@@ -66,57 +90,26 @@ function testParseEmptyString()
 end
 
 function testParseJustTextNoNewline()
+    local expected = { LiteralChunk('plain text') }
     local result = parser:parse('plain text')
-
-    -- print(result)
-
-    assert_table(result)
-    assert_equal(1, #result)
-    assert_equal('plain text', result[1])
+    assert_table_equal(expected, result)
 end
 
 function testParseJustTextWithNewline()
-    local expected = { 'text1', '\n', 'text2', '\n', 'text3' }
+    local expected = { t1, nl, t2, nl, t3 }
     local result = parser:parse('text1\ntext2\ntext3')
-
-    assert_table(result)
-    assert_equal(5, #result)
-    for i,v in ipairs(result) do
-        assert_equal(expected[i], result[i])
-    end
+    assert_table_equal(expected, result)
 end
 
 function testParseTextWithAction()
-    local expected = { 'text1 ', 'action1', ' text2' }
-    local result = parser:parse('text1 $action1$ text2')
-
-    assert_table(result)
-    assert_equal(3, #result)
-    for i,v in ipairs(result) do
-        assert_equal(expected[i], result[i])
-    end
-end
-
-function testParseTextWithActionNoSpaces()
-    local expected = { 'text1', 'action1', 'text2' }
+    local expected = { t1, a1, t2 }
     local result = parser:parse('text1$action1$text2')
-
-    assert_table(result)
-    assert_equal(3, #result)
-    for i,v in ipairs(result) do
-        assert_equal(expected[i], result[i])
-    end
+    assert_table_equal(expected, result)
 end
 
 function testParseEscapedDollarSign()
-    local expected = { 'text1', '\n', 'te$xt2' }
+    local expected = { t1, nl, LiteralChunk('te$xt2') }
     local result = parser:parse('text1\nte\\$xt2')
-
-    assert_table(result)
-    assert_equal(3, #result)
-    for i,v in ipairs(result) do
-        assert_equal(expected[i], result[i])
-    end
+    assert_table_equal(expected, result)
 end
-
 

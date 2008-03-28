@@ -33,6 +33,8 @@
 --]]
 
 local require = require
+local tostring = tostring
+local pcall = pcall
 
 require( 'lunit' )
 
@@ -44,5 +46,119 @@ function testNoArgCnstr()
     local st,err = StringTemplate()
     assert_not_equal(st, nil)
     assert_equal(err, nil)
+end
+
+function testEvalSimpleText()
+    local st = StringTemplate('just text')
+    local expected = 'just text'
+    local actual = tostring(st)
+
+    assert_not_nil(actual)
+    assert_equal(expected, actual)
+end
+
+function testEvalMultiLineText()
+    local st = StringTemplate('text1\ntext2\ntext3')
+    local expected = 'text1\ntext2\ntext3'
+    local actual = tostring(st)
+
+    assert_not_nil(actual)
+    assert_equal(expected, actual)
+end
+
+function testEvalAttribute()
+    local st = StringTemplate('one $yadda$ three')
+    local expected = 'one two three'
+
+    st['yadda'] = 'two'
+
+    local actual = tostring(st)
+
+    assert_not_nil(actual)
+    assert_equal(expected, actual)
+end
+
+function testEvalAttrWithProperty()
+    local st = StringTemplate('one $foo.bar$ three')
+    local expected = 'one two three'
+
+    st['foo'] = { bar = 'two' }
+
+    local actual = tostring(st)
+
+    assert_not_nil(actual)
+    assert_equal(expected, actual)
+end
+
+function testEvalMissingAttribute()
+    local st = StringTemplate('one $yadda$ three')
+    local expected = 'one  three'
+    local actual = tostring(st)
+
+    assert_not_nil(actual)
+    assert_equal(expected, actual)
+end
+
+function testEvalMissingProperty()
+    local st = StringTemplate('one $foo.bar$ three')
+    local expected = 'one  three'
+
+    st['foo'] = {}
+
+    local actual = tostring(st)
+
+    assert_not_nil(actual)
+    assert_equal(expected, actual)
+end
+
+function testEvalMissingAttrWithProperty()
+    local st = StringTemplate('one $foo.bar$ three')
+    local expected = 'one  three'
+
+    local actual = tostring(st)
+
+    assert_not_nil(actual)
+    assert_equal(expected, actual)
+end
+
+function testEvalMultiValAttribute()
+    local st = StringTemplate('one $foo$ five')
+    local expected = 'one twothreefour five'
+
+    st['foo'] = { 'two', 'three', 'four' }
+
+    local actual = tostring(st)
+
+    assert_not_nil(actual)
+    assert_equal(expected, actual)
+end
+
+function testEvalMultiValAttrWithSep()
+    local st = StringTemplate('one $foo; separator=","$ five')
+    local expected = 'one two,three,four five'
+
+    st['foo'] = { 'two', 'three', 'four' }
+
+    local actual = tostring(st)
+
+    assert_not_nil(actual)
+    assert_equal(expected, actual)
+end
+
+function testEvalMultiValAttrWithEmptySep()
+    local st = StringTemplate('one $foo; separator=""$ five')
+    local expected = 'one twothreefour five'
+
+    st['foo'] = { 'two', 'three', 'four' }
+
+    local actual = tostring(st)
+
+    assert_not_nil(actual)
+    assert_equal(expected, actual)
+end
+
+function testEvalSepWithoutAttr()
+    local ok, errmsg = pcall(StringTemplate, StringTemplate, 'one $;separator=","$ three')
+    assert_false(ok)
 end
 

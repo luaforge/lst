@@ -28,65 +28,43 @@
     ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
     POSSIBILITY OF SUCH DAMAGE.
 
-    The implementation of the StringTemplate class.
+    A LiteralChunk is exactly that: a block of literal text (a string) to 
+    be returned via tostring() or written to a stream via a call to write(stream).
 
 --]]
 
 local module = module
 local require = require
 local setmetatable = setmetatable
-local ipairs = ipairs
-local table_concat = table.concat
-local tostring = tostring
-local error = error
 
-module( 'lst.StringTemplate' )
+module( 'lst.LiteralChunk' )
 
-local STParser = require( 'lst.StringTemplateParser' )
+local function tostring(chunk)
+    return chunk.text
+end
 
-local function st_tostring(self)
-    return self:eval()
+local function eq(chunk1, chunk2)
+    return chunk1.text == chunk2.text
 end
 
 local mt = {
-    __tostring = st_tostring
+    __tostring = tostring,
+    __eq = eq
 }
 
-local function eval(self)
-    local result = {}
-
-    for i,chunk in ipairs(self.chunks) do
-        result[i] = tostring(chunk)
-    end
-
-    return table_concat(result)
+local function setEnclosingTemplate(self, template)
+    self.enclosingTemplate = template
 end
 
-function __call(self, templateText)
-    local st = {}
-    setmetatable(st, mt)
+function __call(self, text)
+    local lc = {}
+    setmetatable(lc, mt)
+    
+    lc.text = text
 
-    st.eval = eval
+    lc.setEnclosingTemplate = setEnclosingTemplate
 
-    local chunks
-
-    if templateText then
-        local parser = STParser()
-        chunks = parser:parse(templateText)
-        if chunks == nil then
-            error('Failed to parse template', 2)
-        end
-
-        for _,v in ipairs(chunks) do
-            v:setEnclosingTemplate(st)
-        end
-    else
-        chunks = nil
-    end
-
-    st.chunks = chunks
-
-    return st;
+    return lc
 end
 
 setmetatable(_M, _M)
