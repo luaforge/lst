@@ -44,29 +44,27 @@ module( 'lst.StringTemplate' )
 
 local STParser = require( 'lst.StringTemplateParser' )
 
-local function st_tostring(self)
-    return self:eval()
-end
-
-local mt = {
-    __tostring = st_tostring
-}
-
 local function eval(self)
     local result = {}
 
-    for i,chunk in ipairs(self.chunks) do
+    for i,chunk in ipairs(self.__chunks) do
         result[i] = tostring(chunk)
     end
 
     return table_concat(result)
 end
 
+local function st_tostring(self)
+    return eval(self)
+end
+
+local mt = {
+    __tostring = st_tostring
+}
+
 function __call(self, templateText)
     local st = {}
     setmetatable(st, mt)
-
-    st.eval = eval
 
     local chunks
 
@@ -84,7 +82,7 @@ function __call(self, templateText)
         chunks = nil
     end
 
-    st.chunks = chunks
+    st.__chunks = chunks
 
     return st;
 end
