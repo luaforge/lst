@@ -28,11 +28,21 @@
     ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
     POSSIBILITY OF SUCH DAMAGE.
 
-    This file loads all the unit test modules to be executed.
+    This module tests the StringTemplate class.
 
 --]]
 
-require( 'StringTemplateTests' )
-require( 'StringTemplateParserTests' )
+local require = require
 
+require( 'lunit' )
+
+module( 'StringTemplateTests', lunit.testcase )
+
+local StringTemplate = require( 'lst.StringTemplate' )
+
+function testNoArgCnstr()
+    local st,err = StringTemplate()
+    assert_not_equal(st, nil)
+    assert_equal(err, nil)
+end
 

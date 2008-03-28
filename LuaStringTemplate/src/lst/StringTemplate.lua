@@ -28,11 +28,21 @@
     ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
     POSSIBILITY OF SUCH DAMAGE.
 
-    This file loads all the unit test modules to be executed.
+    The implementation of the StringTemplate class.
 
 --]]
 
-require( 'StringTemplateTests' )
-require( 'StringTemplateParserTests' )
+local module = module
+local require = require
+local setmetatable = setmetatable
 
+module( 'lst.StringTemplate' )
+
+function __call(self, ...)
+    local t = {}
+
+    return t;
+end
+
+setmetatable(_M, _M)
 
