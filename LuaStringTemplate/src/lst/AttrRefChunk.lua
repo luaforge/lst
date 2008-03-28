@@ -38,8 +38,11 @@ local require = require
 local setmetatable = setmetatable
 local tostring = tostring
 local string_gmatch = string.gmatch
+local string_match = string.match
+local string_gsub = string.gsub
 local type = type
 local table_concat = table.concat
+local print = print
 
 module( 'lst.AttrRefChunk' )
 
@@ -52,11 +55,29 @@ local function eq(chunk1, chunk2)
 end
 
 local function getField(self)
-    local v = self.enclosingTemplate
+    local v = self.enclosingTemplate[self.attribute]
 
-    for w in string_gmatch(self.attribute, "[%w_]+") do
-        v = v[w]
-        if not v then break end
+    if v ~= nil and self.property then
+        local prop = self.property
+
+        -- indirect property lookup
+        if string_match(prop, "%(.+%)") then
+            prop = string_gsub(prop, "%((.+)%)", "%1")
+            local iv = self.enclosingTemplate
+
+            for w in string_gmatch(prop, "[%w_]+") do
+                iv = iv[w]
+                if not iv then break end
+            end
+
+            prop = iv or ''
+        end
+
+        -- search for the property
+        for w in string_gmatch(prop, "[%w_]+") do
+            v = v[w]
+            if not v then break end
+        end
     end
 
     v = v or ''
@@ -87,11 +108,12 @@ local function setEnclosingTemplate(self, template)
     self.enclosingTemplate = template
 end
 
-function __call(self, attribute, separator)
+function __call(self, attribute, property, separator)
     local ac = {}
     setmetatable(ac, mt)
     
     ac.attribute = attribute
+    ac.property = property
     ac.separator = separator
     ac.eval = eval
     ac.setEnclosingTemplate = setEnclosingTemplate

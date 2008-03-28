@@ -59,9 +59,13 @@ local function newNewline()
     return NewlineChunk()
 end
 
-local function newAttrRefAction(attribute, separator)
-    -- print('attr: ' .. tostring(attribute), 'sep: ' .. tostring(separator))
-    return AttrRefChunk(attribute, separator)
+local function newAttrRefAction(attribute, property, separator)
+    --[[
+    print('attr: ' .. tostring(attribute), 
+          'prop: ' .. tostring(property),
+          'sep: ' .. tostring(separator))
+    --]]
+    return AttrRefChunk(attribute, property, separator)
 end
 
 local scanner = {
@@ -71,10 +75,12 @@ local scanner = {
     SPACE = lpeg.S' \t',
     SEMI = lpeg.S';',
     COMMA = lpeg.S',',
+    PERIOD = lpeg.S'.',
     SEPARATOR = lpeg.P'separator',
     EQUALS = lpeg.P'=',
     DQUOTE = lpeg.S'"',
-    NULL = lpeg.P'null'
+    NULL = lpeg.P'null',
+    EPSILON = lpeg.P(true)
 }
 
 local escapes = {
@@ -90,6 +96,7 @@ local Chunk,
       ActionEnd, 
       Escape,
       AttrRef,
+      AttrProp,
       AttrSep,
       AttrRefAction
       = 
@@ -101,19 +108,30 @@ local Chunk,
       lpeg.V'ActionEnd', 
       lpeg.V'Escape',
       lpeg.V'AttrRef',
+      lpeg.V'AttrProp',
       lpeg.V'AttrSep',
       lpeg.V'AttrRefAction'
 
 local grammar = {
     "Template",
     Template = lpeg.Ct(Chunk^1) * -1,
+
     Chunk = Literal + Action + Newline,
+
     Newline = lpeg.C(scanner.NEWLINE) / newNewline,
+
     Escape = (lpeg.P'\\' * lpeg.S[[$]]) / escapes,
+
     ActionStart = lpeg.P'$' - lpeg.P'\\',
+
     ActionEnd = lpeg.P'$',
-    AttrRef = lpeg.C((1 - (ActionEnd + scanner.SEMI))^1),
-    AttrSep = scanner.SEMI * 
+
+    AttrRef = lpeg.C((1 - (ActionEnd + scanner.SEMI + scanner.PERIOD))^1),
+
+    AttrProp = (scanner.PERIOD * lpeg.C((1 - (ActionEnd + scanner.SEMI))^1)) +
+               lpeg.C(scanner.EPSILON),
+
+    AttrSep = (scanner.SEMI * 
                 scanner.SPACE *
                 ((scanner.NULL *
                  scanner.EQUALS *
@@ -126,11 +144,15 @@ local grammar = {
                 scanner.EQUALS *
                 scanner.DQUOTE *
                 lpeg.C((1 - scanner.DQUOTE)^0) *
-                scanner.DQUOTE,
+                scanner.DQUOTE) +
+              lpeg.C(scanner.EPSILON),
+
     AttrRefAction = ActionStart * 
-                        (AttrRef * AttrSep^-1 / newAttrRefAction) * 
+                        (AttrRef * AttrProp * AttrSep / newAttrRefAction) * 
                         ActionEnd,
+
     Action = AttrRefAction,
+
     Literal = lpeg.Cs(((Escape + 1) - (ActionStart + Newline))^1) / newLiteral
 }
 

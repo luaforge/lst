@@ -90,6 +90,32 @@ function testEvalAttrWithProperty()
     assert_equal(expected, actual)
 end
 
+function testEvalAttrWithPropertyAndSep()
+    local st = StringTemplate('one $foo.bar; separator="*"$ three')
+    local expected = 'one two*two.five three'
+
+    st['foo'] = { bar = { 'two', 'two.five' } }
+
+    local actual = tostring(st)
+
+    assert_not_nil(actual)
+    assert_equal(expected, actual)
+end
+
+
+function testEvalAttrWithNestedProperty()
+    local st = StringTemplate('one $foo.bar.baz$ three')
+    local expected = 'one two three'
+
+    st['foo'] = { bar = { baz = 'two' } }
+
+    local actual = tostring(st)
+
+    assert_not_nil(actual)
+    assert_equal(expected, actual)
+
+end
+
 function testEvalMissingAttribute()
     local st = StringTemplate('one $yadda$ three')
     local expected = 'one  three'
@@ -194,3 +220,28 @@ function testEvalIgnoreNull()
     assert_equal(expected, actual)
 end
 
+function testEvalIndirectProperty()
+    local st = StringTemplate('one $foo.(bar)$ three')
+    local expected = 'one two three'
+
+    st.foo = { yadda = 'two' }
+    st.bar = 'yadda'
+
+    local actual = tostring(st)
+
+    assert_not_nil(actual)
+    assert_equal(expected, actual)
+end
+
+function testEvalDoubleIndirectProperty()
+    local st = StringTemplate('one $foo.(bar)$ three')
+    local expected = 'one two three'
+
+    st.foo = { yadda = { blah = 'two' } }
+    st.bar = 'yadda.blah'
+
+    local actual = tostring(st)
+
+    assert_not_nil(actual)
+    assert_equal(expected, actual)
+end
