@@ -111,7 +111,6 @@ function testEvalAttrWithPropertyAndSep()
     assert_equal(expected, actual)
 end
 
-
 function testEvalAttrWithNestedProperty()
     local st = StringTemplate('one $foo.bar.baz$ three')
     local expected = 'one two three'
@@ -229,6 +228,83 @@ function testEvalIgnoreNull()
     assert_equal(expected, actual)
 end
 
+--[=[
+--   The following checks for options that StringTemplate supports,
+--   although LuaStringTemplate doesn't currently.
+--]=]
+
+function testEvalFormatOption()
+    local st = StringTemplate('one $foo; format="f"$ three')
+    local expected = 'one two three'
+
+    st.foo = 'two'
+
+    local actual = tostring(st)
+
+    assert_not_nil(actual)
+    assert_equal(expected, actual)
+end
+
+function testEvalWrapOption()
+    local st = StringTemplate('one $foo; wrap="\\n"$ three')
+    local expected = 'one two three'
+
+    st.foo = 'two'
+
+    local actual = tostring(st)
+
+    assert_not_nil(actual)
+    assert_equal(expected, actual)
+end
+
+function testEvalWrapOptionWithDefault()
+    local st = StringTemplate('one $foo; wrap$ three')
+    local expected = 'one two three'
+
+    st.foo = 'two'
+
+    local actual = tostring(st)
+
+    assert_not_nil(actual)
+    assert_equal(expected, actual)
+end
+
+function testEvalAnchor()
+    local st = StringTemplate('one $foo; anchor="true"$ three')
+    local expected = 'one two three'
+
+    st.foo = 'two'
+
+    local actual = tostring(st)
+
+    assert_not_nil(actual)
+    assert_equal(expected, actual)
+end
+
+function testEvalAnchorWithDefault()
+    local st = StringTemplate('one $foo; anchor$ three')
+    local expected = 'one two three'
+
+    st.foo = 'two'
+
+    local actual = tostring(st)
+
+    assert_not_nil(actual)
+    assert_equal(expected, actual)
+end
+
+function testEvalMultipleOptions()
+    local st = StringTemplate('one $foo; null="yadda", wrap, separator="|", anchor, format="f"$ three')
+    local expected = 'one two three'
+
+    st.foo = 'two'
+
+    local actual = tostring(st)
+
+    assert_not_nil(actual)
+    assert_equal(expected, actual)
+end
+
 function testEvalIndirectProperty()
     local st = StringTemplate('one $foo.(bar)$ three')
     local expected = 'one two three'
@@ -279,4 +355,3 @@ function testABScannerWithProperty()
     assert_not_nil(actual)
     assert_equal(expected, actual)
 end
-

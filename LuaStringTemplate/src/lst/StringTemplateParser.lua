@@ -39,6 +39,9 @@ local setmetatable = setmetatable
 local error = error
 local tostring = tostring
 local print = print
+local pairs = pairs
+local ipairs = ipairs
+local type = type
 
 module( 'lst.StringTemplateParser' )
 
@@ -61,13 +64,15 @@ local function newNewline()
     return NewlineChunk()
 end
 
-local function newAttrRefAction(attribute, property, separator)
-    --[[
-    print('attr: ' .. tostring(attribute), 
-          'prop: ' .. tostring(property),
-          'sep: ' .. tostring(separator))
-    --]]
-    return AttrRefChunk(attribute, property, separator)
+local function newAttrRefAction(attribute, property, options)
+    local opts = {}
+    if type(options) == "table" then
+        for i,v in ipairs(options) do
+            opts[v[1]] = v[2]
+        end
+    end
+
+    return AttrRefChunk(attribute, property, opts)
 end
 
 local scanner = {
@@ -105,7 +110,8 @@ local Chunk,
       Escape,
       AttrRef,
       AttrProp,
-      AttrSep,
+      AttrOpts,
+      AttrOpt,
       AttrRefAction
       = 
       V'Chunk', 
@@ -117,7 +123,8 @@ local Chunk,
       V'Escape',
       V'AttrRef',
       V'AttrProp',
-      V'AttrSep',
+      V'AttrOpts',
+      V'AttrOpt',
       V'AttrRefAction'
 
 local grammar = {
@@ -135,24 +142,16 @@ local grammar = {
     AttrProp = (scanner.PERIOD * C((1 - (ActionEnd + scanner.SEMI))^1)) +
                C(scanner.EPSILON),
 
-    AttrSep = (scanner.SEMI * 
-                scanner.SPACE *
-                ((scanner.NULL *
-                 scanner.EQUALS *
-                 scanner.DQUOTE *
-                 (1 - scanner.DQUOTE)^0 *
-                 scanner.DQUOTE *
-                 scanner.COMMA *
-                 scanner.SPACE^0)^-1) *
-                scanner.SEPARATOR * 
-                scanner.EQUALS *
-                scanner.DQUOTE *
-                C((1 - scanner.DQUOTE)^0) *
-                scanner.DQUOTE) +
-              C(scanner.EPSILON),
+    AttrOpts = (scanner.SEMI * scanner.SPACE^0 * 
+               Ct(AttrOpt * (scanner.COMMA * scanner.SPACE^0 * AttrOpt)^0)) +
+               C(scanner.EPSILON),  -- ensures we always get something for the options
+
+    AttrOpt = Ct(C((1 - (scanner.EQUALS + scanner.COMMA))^1) * scanner.EQUALS * scanner.DQUOTE *
+                C((1 - scanner.DQUOTE)^0) * scanner.DQUOTE) +
+              Ct(C((1 - (scanner.COMMA + scanner.SPACE + ActionEnd))^1) * C(scanner.EPSILON)),
 
     AttrRefAction = ActionStart * 
-                        (AttrRef * AttrProp * AttrSep / newAttrRefAction) * 
+                        (AttrRef * AttrProp * AttrOpts / newAttrRefAction) * 
                         ActionEnd,
 
     Action = AttrRefAction,

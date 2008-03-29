@@ -43,6 +43,8 @@ local string_gsub = string.gsub
 local type = type
 local table_concat = table.concat
 local print = print
+local pairs = pairs
+local error = error
 
 module( 'lst.AttrRefChunk' )
 
@@ -81,9 +83,16 @@ local function getField(self)
     end
 
     v = v or ''
+    local sep = self.options['separator']
+
+    --[[
+    for key,val in pairs(self.options) do
+        print('--> opt key: \''.. key ..'\'', 'value:', val, 'kvalue:', self.options[k])
+    end
+    --]]
 
     if type(v) == "table" then
-        return table_concat(v, self.separator or '')
+        return table_concat(v, sep)
     else
         return tostring(v)
     end
@@ -108,15 +117,19 @@ local function setEnclosingTemplate(self, template)
     self.enclosingTemplate = template
 end
 
-function __call(self, attribute, property, separator)
+function __call(self, attribute, property, options)
     local ac = {}
     setmetatable(ac, mt)
     
     ac.attribute = attribute
     ac.property = property
-    ac.separator = separator
+    ac.options = options or {}
     ac.eval = eval
     ac.setEnclosingTemplate = setEnclosingTemplate
+
+    if type(ac.options) ~= 'table' then
+        error('attribute ref options must be a table, no a ' .. type(options))
+    end
 
     return ac
 end
