@@ -57,6 +57,15 @@ function testEvalSimpleText()
     assert_equal(expected, actual)
 end
 
+function testEvalUsingSTToString()
+    local st = StringTemplate('just text')
+    local expected = 'just text'
+    local actual = st:tostring()
+
+    assert_not_nil(actual)
+    assert_equal(expected, actual)
+end
+
 function testEvalMultiLineText()
     local st = StringTemplate('text1\ntext2\ntext3')
     local expected = 'text1\ntext2\ntext3'
@@ -245,3 +254,29 @@ function testEvalDoubleIndirectProperty()
     assert_not_nil(actual)
     assert_equal(expected, actual)
 end
+
+function testABScanner()
+    local st = StringTemplate('one <foo> three', StringTemplate.ANGLE_BRACKET_SCANNER)
+    local expected = 'one two three'
+
+    st.foo = 'two'
+
+    local actual = tostring(st)
+
+    assert_not_nil(actual)
+    assert_equal(expected, actual)
+end
+
+function testABScannerWithProperty()
+    local st = StringTemplate('one <foo.bar> three', 
+                              StringTemplate.ANGLE_BRACKET_SCANNER)
+    local expected = 'one two three'
+
+    st.foo = { bar = 'two' }
+
+    local actual = tostring(st)
+
+    assert_not_nil(actual)
+    assert_equal(expected, actual)
+end
+

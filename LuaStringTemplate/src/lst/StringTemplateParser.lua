@@ -47,6 +47,8 @@ local LiteralChunk = require( 'lst.LiteralChunk' )
 local NewlineChunk = require( 'lst.NewlineChunk' )
 local AttrRefChunk = require( 'lst.AttrRefChunk' )
 
+local P, S, R, V, C, Cs, Ct = lpeg.P, lpeg.S, lpeg.R, lpeg.V, lpeg.C, lpeg.Cs, lpeg.Ct
+
 --
 -- The following functions are used in the grammar, and hence need
 -- to be defined before the grammar
@@ -69,22 +71,28 @@ local function newAttrRefAction(attribute, property, separator)
 end
 
 local scanner = {
-    N = lpeg.R'09',
-    AZ = lpeg.R('__','az','AZ','\127\255'),
-    NEWLINE = lpeg.S'\n\r',
-    SPACE = lpeg.S' \t',
-    SEMI = lpeg.S';',
-    COMMA = lpeg.S',',
-    PERIOD = lpeg.S'.',
-    SEPARATOR = lpeg.P'separator',
-    EQUALS = lpeg.P'=',
-    DQUOTE = lpeg.S'"',
-    NULL = lpeg.P'null',
-    EPSILON = lpeg.P(true)
+    N = R'09',
+    AZ = R('__','az','AZ','\127\255'),
+    NEWLINE = S'\n\r',
+    SPACE = S' \t',
+    SEMI = S';',
+    COMMA = S',',
+    PERIOD = S'.',
+    SEPARATOR = P'separator',
+    EQUALS = P'=',
+    DQUOTE = S'"',
+    NULL = P'null',
+    EPSILON = P(true),
+    ESCAPE = S'\\',
+    EXPR_START_DOLLAR = P'$' - S'\\',
+    EXPR_END_DOLLAR = P'$',
+    EXPR_START_BRACKET = P'<' - S'\\',
+    EXPR_END_BRACKET = P'>',
 }
 
 local escapes = {
-    ['\\$'] = '$'
+    ['\\$'] = '$',
+    ['\\<'] = '<',
 }
 
 -- Predeclare the non-terminals
@@ -100,36 +108,32 @@ local Chunk,
       AttrSep,
       AttrRefAction
       = 
-      lpeg.V'Chunk', 
-      lpeg.V'Newline', 
-      lpeg.V'Literal', 
-      lpeg.V'Action', 
-      lpeg.V'ActionStart', 
-      lpeg.V'ActionEnd', 
-      lpeg.V'Escape',
-      lpeg.V'AttrRef',
-      lpeg.V'AttrProp',
-      lpeg.V'AttrSep',
-      lpeg.V'AttrRefAction'
+      V'Chunk', 
+      V'Newline', 
+      V'Literal', 
+      V'Action', 
+      V'ActionStart', 
+      V'ActionEnd', 
+      V'Escape',
+      V'AttrRef',
+      V'AttrProp',
+      V'AttrSep',
+      V'AttrRefAction'
 
 local grammar = {
     "Template",
-    Template = lpeg.Ct(Chunk^1) * -1,
+    Template = Ct(Chunk^1) * -1,
 
     Chunk = Literal + Action + Newline,
 
-    Newline = lpeg.C(scanner.NEWLINE) / newNewline,
+    Newline = C(scanner.NEWLINE) / newNewline,
 
-    Escape = (lpeg.P'\\' * lpeg.S[[$]]) / escapes,
+    Escape = (scanner.ESCAPE * S'$<') / escapes,
 
-    ActionStart = lpeg.P'$' - lpeg.P'\\',
+    AttrRef = C((1 - (ActionEnd + scanner.SEMI + scanner.PERIOD))^1),
 
-    ActionEnd = lpeg.P'$',
-
-    AttrRef = lpeg.C((1 - (ActionEnd + scanner.SEMI + scanner.PERIOD))^1),
-
-    AttrProp = (scanner.PERIOD * lpeg.C((1 - (ActionEnd + scanner.SEMI))^1)) +
-               lpeg.C(scanner.EPSILON),
+    AttrProp = (scanner.PERIOD * C((1 - (ActionEnd + scanner.SEMI))^1)) +
+               C(scanner.EPSILON),
 
     AttrSep = (scanner.SEMI * 
                 scanner.SPACE *
@@ -143,9 +147,9 @@ local grammar = {
                 scanner.SEPARATOR * 
                 scanner.EQUALS *
                 scanner.DQUOTE *
-                lpeg.C((1 - scanner.DQUOTE)^0) *
+                C((1 - scanner.DQUOTE)^0) *
                 scanner.DQUOTE) +
-              lpeg.C(scanner.EPSILON),
+              C(scanner.EPSILON),
 
     AttrRefAction = ActionStart * 
                         (AttrRef * AttrProp * AttrSep / newAttrRefAction) * 
@@ -153,7 +157,7 @@ local grammar = {
 
     Action = AttrRefAction,
 
-    Literal = lpeg.Cs(((Escape + 1) - (ActionStart + Newline))^1) / newLiteral
+    Literal = Cs(((Escape + 1) - (ActionStart + Newline))^1) / newLiteral
 }
 
 --[[
@@ -167,8 +171,16 @@ local parse = function(self, text)
 
     local chunks
     if text ~= '' then
-        -- local p = lpeg.P(grammar) * -1
-        local p = lpeg.P(grammar)
+
+        if self.scanner_type == ANGLE_BRACKET_SCANNER then
+            grammar.ActionStart = scanner.EXPR_START_BRACKET
+            grammar.ActionEnd = scanner.EXPR_END_BRACKET
+        else 
+            grammar.ActionStart = scanner.EXPR_START_DOLLAR
+            grammar.ActionEnd = scanner.EXPR_END_DOLLAR
+        end
+
+        local p = P(grammar)
         chunks = lpeg.match(p, text)
     else
         chunks = {}
@@ -177,13 +189,23 @@ local parse = function(self, text)
     return chunks
 end
 
-function __call(self, ...)
+function __call(self, scanner_type) 
     local parser = {}
 
     parser.parse = parse
+    parser.scanner_type = scanner_type or DOLLAR_SCANNER
+
+    if not (parser.scanner_type == DOLLAR_SCANNER or 
+            parser.scanner_type == ANGLE_BRACKET_SCANNER) then
+        error('Unknown scanner type ' .. scanner_type)
+    end
 
     return parser;
 end
 
+_M['ANGLE_BRACKET_SCANNER'] = 1
+_M['DOLLAR_SCANNER'] = 2
+
 setmetatable(_M, _M)
+
 

@@ -39,6 +39,7 @@ local ipairs = ipairs
 local table_concat = table.concat
 local tostring = tostring
 local error = error
+local print = print
 
 module( 'lst.StringTemplate' )
 
@@ -62,14 +63,14 @@ local mt = {
     __tostring = st_tostring
 }
 
-function __call(self, templateText)
+function __call(self, templateText, scanner_type)
     local st = {}
     setmetatable(st, mt)
 
     local chunks
 
     if templateText then
-        local parser = STParser()
+        local parser = STParser(scanner_type)
         chunks = parser:parse(templateText)
         if chunks == nil then
             error('Failed to parse template', 2)
@@ -83,9 +84,13 @@ function __call(self, templateText)
     end
 
     st.__chunks = chunks
+    st.tostring = st_tostring
 
     return st;
 end
+
+_M['ANGLE_BRACKET_SCANNER'] = STParser.ANGLE_BRACKET_SCANNER
+_M['DOLLAR_SCANNER'] = STParser.DOLLAR_SCANNER
 
 setmetatable(_M, _M)
 
