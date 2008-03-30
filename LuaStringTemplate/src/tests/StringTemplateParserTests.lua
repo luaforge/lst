@@ -113,3 +113,9 @@ function testParseEscapedDollarSign()
     assert_table_equal(expected, result)
 end
 
+function testParseComments()
+    local expected = { t1, nl, nl, t2 }
+    local result = parser:parse('text1\n$! stripped out !$\ntext2')
+    assert_table_equal(expected, result)
+end
+

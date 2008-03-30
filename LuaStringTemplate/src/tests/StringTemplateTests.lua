@@ -355,3 +355,41 @@ function testABScannerWithProperty()
     assert_not_nil(actual)
     assert_equal(expected, actual)
 end
+
+function testDSComment()
+    local st = StringTemplate('one $! some long \n winded comment !$ two $! another comment !$ three')
+    local expected = 'one  two  three'
+
+    local actual = tostring(st)
+
+    assert_not_nil(actual)
+    assert_equal(expected, actual)
+end
+
+--[=[
+--  Its worth noting that the comment marker depends on which
+--  scanner/expression delimiter is being used, LuaStringTemplate
+--  doesn't automatically strip out both.
+--]=]
+function testABComment()
+    local st = StringTemplate('one <! to strip !> two', StringTemplate.ANGLE_BRACKET_SCANNER)
+    local expected = 'one  two'
+
+    local actual = tostring(st)
+
+    assert_not_nil(actual)
+    assert_equal(expected, actual)
+end
+
+function testCommentAndAttrRef()
+    local st = StringTemplate('one $! to strip !$ two $foo$')
+    local expected = 'one  two three'
+
+    st.foo = 'three'
+
+    local actual = tostring(st)
+
+    assert_not_nil(actual)
+    assert_equal(expected, actual)
+end
+

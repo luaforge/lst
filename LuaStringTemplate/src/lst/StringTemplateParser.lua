@@ -64,7 +64,7 @@ local function newNewline()
     return NewlineChunk()
 end
 
-local function newAttrRefAction(attribute, property, options)
+local function newAttrRefExpr(attribute, property, options)
     local opts = {}
     if type(options) == "table" then
         for i,v in ipairs(options) do
@@ -89,6 +89,7 @@ local scanner = {
     NULL = P'null',
     EPSILON = P(true),
     ESCAPE = S'\\',
+    BANG = P'!',
     EXPR_START_DOLLAR = P'$' - S'\\',
     EXPR_END_DOLLAR = P'$',
     EXPR_START_BRACKET = P'<' - S'\\',
@@ -104,42 +105,44 @@ local escapes = {
 local Chunk, 
       Newline, 
       Literal, 
-      Action, 
-      ActionStart, 
-      ActionEnd, 
+      Expr, 
+      ExprStart, 
+      ExprEnd, 
       Escape,
       AttrRef,
       AttrProp,
       AttrOpts,
       AttrOpt,
-      AttrRefAction
+      AttrRefExpr,
+      CommentExpr
       = 
       V'Chunk', 
       V'Newline', 
       V'Literal', 
-      V'Action', 
-      V'ActionStart', 
-      V'ActionEnd', 
+      V'Expr', 
+      V'ExprStart', 
+      V'ExprEnd', 
       V'Escape',
       V'AttrRef',
       V'AttrProp',
       V'AttrOpts',
       V'AttrOpt',
-      V'AttrRefAction'
+      V'AttrRefExpr',
+      V'CommentExpr'
 
 local grammar = {
     "Template",
     Template = Ct(Chunk^1) * -1,
 
-    Chunk = Literal + Action + Newline,
+    Chunk = Literal + Expr + Newline,
 
     Newline = C(scanner.NEWLINE) / newNewline,
 
     Escape = (scanner.ESCAPE * S'$<') / escapes,
 
-    AttrRef = C((1 - (ActionEnd + scanner.SEMI + scanner.PERIOD))^1),
+    AttrRef = -scanner.BANG * C((1 - (ExprEnd + scanner.SEMI + scanner.PERIOD))^1),
 
-    AttrProp = (scanner.PERIOD * C((1 - (ActionEnd + scanner.SEMI))^1)) +
+    AttrProp = (scanner.PERIOD * C((1 - (ExprEnd + scanner.SEMI))^1)) +
                C(scanner.EPSILON),
 
     AttrOpts = (scanner.SEMI * scanner.SPACE^0 * 
@@ -148,15 +151,17 @@ local grammar = {
 
     AttrOpt = Ct(C((1 - (scanner.EQUALS + scanner.COMMA))^1) * scanner.EQUALS * scanner.DQUOTE *
                 C((1 - scanner.DQUOTE)^0) * scanner.DQUOTE) +
-              Ct(C((1 - (scanner.COMMA + scanner.SPACE + ActionEnd))^1) * C(scanner.EPSILON)),
+              Ct(C((1 - (scanner.COMMA + scanner.SPACE + ExprEnd))^1) * C(scanner.EPSILON)),
 
-    AttrRefAction = ActionStart * 
-                        (AttrRef * AttrProp * AttrOpts / newAttrRefAction) * 
-                        ActionEnd,
+    AttrRefExpr = ExprStart * 
+                        (AttrRef * AttrProp * AttrOpts / newAttrRefExpr) * 
+                        ExprEnd,
 
-    Action = AttrRefAction,
+    CommentExpr = ExprStart * scanner.BANG * (1 - scanner.BANG)^0 * scanner.BANG * ExprEnd,
 
-    Literal = Cs(((Escape + 1) - (ActionStart + Newline))^1) / newLiteral
+    Expr = AttrRefExpr + CommentExpr,
+
+    Literal = Cs(((Escape + 1) - (ExprStart + Newline))^1) / newLiteral
 }
 
 --[[
@@ -172,11 +177,11 @@ local parse = function(self, text)
     if text ~= '' then
 
         if self.scanner_type == ANGLE_BRACKET_SCANNER then
-            grammar.ActionStart = scanner.EXPR_START_BRACKET
-            grammar.ActionEnd = scanner.EXPR_END_BRACKET
+            grammar.ExprStart = scanner.EXPR_START_BRACKET
+            grammar.ExprEnd = scanner.EXPR_END_BRACKET
         else 
-            grammar.ActionStart = scanner.EXPR_START_DOLLAR
-            grammar.ActionEnd = scanner.EXPR_END_DOLLAR
+            grammar.ExprStart = scanner.EXPR_START_DOLLAR
+            grammar.ExprEnd = scanner.EXPR_END_DOLLAR
         end
 
         local p = P(grammar)
