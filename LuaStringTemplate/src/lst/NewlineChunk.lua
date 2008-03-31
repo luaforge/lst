@@ -58,10 +58,15 @@ local function setEnclosingTemplate(self, template)
     self.enclosingTemplate = template
 end
 
+local function isA(self, class)
+    return _M == class
+end
+
 -- This is effectively a Singleton Flyweight
 local nl = { 
     text = '\n',  
-    setEnclosingTemplate = setEnclosingTemplate
+    setEnclosingTemplate = setEnclosingTemplate,
+    isA = isA
 }
 setmetatable(nl, mt)
 

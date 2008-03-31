@@ -44,6 +44,8 @@ local print = print
 module( 'lst.StringTemplate' )
 
 local STParser = require( 'lst.StringTemplateParser' )
+local LiteralChunk = require( 'lst.LiteralChunk' )
+local AttrRefChunk = require( 'lst.AttrRefChunk' )
 
 local function eval(self)
     local result = {}
@@ -63,6 +65,25 @@ local mt = {
     __tostring = st_tostring
 }
 
+local function processChunks(chunks, st)
+    for i,chunk in ipairs(chunks) do
+        chunk:setEnclosingTemplate(st)
+
+        --[[
+        --  This really should be part of the parser, but I can't
+        --  think of an elegant way to do it.  Any AttrRefChunk that 
+        --  is preceeded by a LiteralChunk which is all whitespace, should
+        --  have that LiteralChunk passed as its indent.
+        --]]
+        if chunk:isA(AttrRefChunk) and i > 1 then
+            local pc = chunks[i-1]
+            if pc:isA(LiteralChunk) and pc.isAllWs then
+                chunk:setIndentChunk(pc)
+            end
+        end
+    end
+end
+
 function __call(self, templateText, scanner_type)
     local st = {}
     setmetatable(st, mt)
@@ -76,9 +97,7 @@ function __call(self, templateText, scanner_type)
             error('Failed to parse template', 2)
         end
 
-        for _,v in ipairs(chunks) do
-            v:setEnclosingTemplate(st)
-        end
+        processChunks(chunks, st)
     else
         chunks = nil
     end

@@ -93,7 +93,10 @@ local function getField(self)
                           property)
 
     v = v or ''
-    local sep = self.options['separator']
+    local sep = self.options['separator'] or ''
+    if self.indentChunk then
+        sep = sep .. self.indentChunk.text
+    end
 
     if type(v) == "table" then
         return table_concat(v, sep)
@@ -117,8 +120,16 @@ local function eval(self)
     end
 end
 
+local function isA(self, class)
+    return _M == class
+end
+
 local function setEnclosingTemplate(self, template)
     self.enclosingTemplate = template
+end
+
+local function setIndentChunk(self, chunk)
+    self.indentChunk = chunk
 end
 
 function __call(self, attribute, property, options)
@@ -128,8 +139,11 @@ function __call(self, attribute, property, options)
     ac.attribute = attribute
     ac.property = property
     ac.options = options or {}
+
     ac.eval = eval
     ac.setEnclosingTemplate = setEnclosingTemplate
+    ac.isA = isA
+    ac.setIndentChunk = setIndentChunk
 
     if type(ac.options) ~= 'table' then
         error('attribute ref options must be a table, no a ' .. type(options))

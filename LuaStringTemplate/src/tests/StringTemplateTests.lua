@@ -443,3 +443,15 @@ function testMultipleEsacpeExpr()
     assert_equal(expected, actual)
 end
 
+function testAutoIndent()
+    local st = StringTemplate('one\n\t$foo; separator="\n"$\nfive')
+    local expected = 'one\n\ttwo\n\tthree\n\tfour\nfive'
+
+    st.foo = { 'two', 'three', 'four' }
+
+    local actual = tostring(st)
+
+    assert_not_nil(actual)
+    assert_equal(expected, actual)
+end
+

@@ -36,6 +36,7 @@
 local module = module
 local require = require
 local setmetatable = setmetatable
+local string_match = string.match
 
 module( 'lst.LiteralChunk' )
 
@@ -56,13 +57,23 @@ local function setEnclosingTemplate(self, template)
     self.enclosingTemplate = template
 end
 
+local function isA(self, class)
+    return _M == class
+end
+
 function __call(self, text)
     local lc = {}
     setmetatable(lc, mt)
     
     lc.text = text
+    if string_match(text, '^[%s]+$') then
+        lc.isAllWs = true
+    else
+        lc.isAllWs = false
+    end
 
     lc.setEnclosingTemplate = setEnclosingTemplate
+    lc.isA = isA
 
     return lc
 end
