@@ -40,6 +40,8 @@ local tostring = tostring
 local string_gmatch = string.gmatch
 local string_match = string.match
 local string_gsub = string.gsub
+local string_sub = string.sub
+local string_find = string.find
 local type = type
 local table_concat = table.concat
 local print = print
@@ -56,40 +58,42 @@ local function eq(chunk1, chunk2)
     return chunk1.attribute == chunk2.attribute
 end
 
-local function getField(self)
-    local v = self.enclosingTemplate[self.attribute]
+local function getRawValue(self, context, attribute, property)
+    local v = context[attribute]
 
-    if v ~= nil and self.property then
-        local prop = self.property
-
-        -- indirect property lookup
-        if string_match(prop, "%(.+%)") then
-            prop = string_gsub(prop, "%((.+)%)", "%1")
-            local iv = self.enclosingTemplate
-
-            for w in string_gmatch(prop, "[%w_]+") do
-                iv = iv[w]
-                if not iv then break end
-            end
-
-            prop = iv or ''
-        end
-
-        -- search for the property
-        for w in string_gmatch(prop, "[%w_]+") do
+    if v ~= nil and property then
+        for w in string_gmatch(property, "[%w_]+") do
             v = v[w]
             if not v then break end
         end
     end
 
     v = v or ''
-    local sep = self.options['separator']
 
-    --[[
-    for key,val in pairs(self.options) do
-        print('--> opt key: \''.. key ..'\'', 'value:', val, 'kvalue:', self.options[k])
+    return v
+end
+
+local function getField(self)
+    local attribute = self.attribute
+    local property = self.property
+
+    if string_match(property, '%(.+%)') then
+        -- indirect property lookup
+        local indirect = string_gsub(property, '%((.+)%)', "%1")
+        local attr, ignore, prop = string_match(indirect, '([%w_]+)[%.]?(.*)')
+        property = getRawValue(self, 
+                               self.enclosingTemplate, 
+                               attr,
+                               prop)
     end
-    --]]
+
+    local v = getRawValue(self,
+                          self.enclosingTemplate,
+                          attribute,
+                          property)
+
+    v = v or ''
+    local sep = self.options['separator']
 
     if type(v) == "table" then
         return table_concat(v, sep)
