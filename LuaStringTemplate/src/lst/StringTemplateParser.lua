@@ -42,6 +42,7 @@ local print = print
 local pairs = pairs
 local ipairs = ipairs
 local type = type
+local table_concat = table.concat
 
 module( 'lst.StringTemplateParser' )
 
@@ -49,6 +50,7 @@ local lpeg = require( 'lpeg' )
 local LiteralChunk = require( 'lst.LiteralChunk' )
 local NewlineChunk = require( 'lst.NewlineChunk' )
 local AttrRefChunk = require( 'lst.AttrRefChunk' )
+local EscapeChunk = require( 'lst.EscapeChunk' )
 
 local P, S, R, V, C, Cs, Ct = lpeg.P, lpeg.S, lpeg.R, lpeg.V, lpeg.C, lpeg.Cs, lpeg.Ct
 
@@ -75,6 +77,11 @@ local function newAttrRefExpr(attribute, property, options)
     return AttrRefChunk(attribute, property, opts)
 end
 
+local function newEscapeExpr(escapes)
+    local escStr = table_concat(escapes)
+    return EscapeChunk(escStr)
+end
+
 local scanner = {
     N = R'09',
     AZ = R('__','az','AZ','\127\255'),
@@ -96,9 +103,16 @@ local scanner = {
     EXPR_END_BRACKET = P'>',
 }
 
-local escapes = {
+local literalEscapes = {
     ['\\$'] = '$',
     ['\\<'] = '<',
+}
+
+local exprEscapes = {
+    ['\\n'] = '\n',
+    ['\\r'] = '\r',
+    ['\\ '] = ' ',
+    ['\\t'] = '\t'
 }
 
 -- Predeclare the non-terminals
@@ -108,13 +122,14 @@ local Chunk,
       Expr, 
       ExprStart, 
       ExprEnd, 
-      Escape,
+      LiteralEscape,
       AttrRef,
       AttrProp,
       AttrOpts,
       AttrOpt,
       AttrRefExpr,
-      CommentExpr
+      CommentExpr,
+      EscapeExpr
       = 
       V'Chunk', 
       V'Newline', 
@@ -122,13 +137,14 @@ local Chunk,
       V'Expr', 
       V'ExprStart', 
       V'ExprEnd', 
-      V'Escape',
+      V'LiteralEscape',
       V'AttrRef',
       V'AttrProp',
       V'AttrOpts',
       V'AttrOpt',
       V'AttrRefExpr',
-      V'CommentExpr'
+      V'CommentExpr',
+      V'EscapeExpr'
 
 local grammar = {
     "Template",
@@ -138,9 +154,9 @@ local grammar = {
 
     Newline = C(scanner.NEWLINE) / newNewline,
 
-    Escape = (scanner.ESCAPE * S'$<') / escapes,
+    LiteralEscape = (scanner.ESCAPE * S'$<') / literalEscapes,
 
-    AttrRef = -scanner.BANG * C((1 - (ExprEnd + scanner.SEMI + scanner.PERIOD))^1),
+    AttrRef = -(scanner.BANG + scanner.ESCAPE) * C((1 - (ExprEnd + scanner.SEMI + scanner.PERIOD))^1),
 
     AttrProp = (scanner.PERIOD * C((1 - (ExprEnd + scanner.SEMI))^1)) +
                C(scanner.EPSILON),
@@ -159,9 +175,11 @@ local grammar = {
 
     CommentExpr = ExprStart * scanner.BANG * (1 - scanner.BANG)^0 * scanner.BANG * ExprEnd,
 
-    Expr = AttrRefExpr + CommentExpr,
+    EscapeExpr = ExprStart * Ct(Cs(((scanner.ESCAPE * S'ntr ') / exprEscapes))^1) / newEscapeExpr * ExprEnd,
 
-    Literal = Cs(((Escape + 1) - (ExprStart + Newline))^1) / newLiteral
+    Expr = EscapeExpr + CommentExpr + AttrRefExpr,
+
+    Literal = Cs(((LiteralEscape + 1) - (ExprStart + Newline))^1) / newLiteral
 }
 
 --[[

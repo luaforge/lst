@@ -42,6 +42,8 @@ local require = require
 local pcall = pcall
 local print = print
 local ipairs = ipairs
+local type = type
+local tostring = tostring
 
 require( 'lunit' )
 
@@ -61,13 +63,15 @@ local STParser = require( 'lst.StringTemplateParser' )
 local LiteralChunk = require( 'lst.LiteralChunk' )
 local NewlineChunk = require( 'lst.NewlineChunk' )
 local AttrRefChunk = require( 'lst.AttrRefChunk' )
-local parser, t1, t2, t3, nl, a1
+local EscapeChunk = require( 'lst.EscapeChunk' )
+local parser, t1, t2, t3, nl, a1, e1
 
 function setup()
     parser = STParser()
     t1, t2, t3 = LiteralChunk('text1'), LiteralChunk('text2'), LiteralChunk('text3')
     nl = NewlineChunk()
     a1 = AttrRefChunk('action1')
+    e1 = EscapeChunk('\n');
 end
 
 function teardown()
@@ -119,3 +123,8 @@ function testParseComments()
     assert_table_equal(expected, result)
 end
 
+function testParseEscapeChunk()
+    local expected = { t1, e1, t2 }
+    local result = parser:parse('text1$\\n$text2')
+    assert_table_equal(expected, result)
+end

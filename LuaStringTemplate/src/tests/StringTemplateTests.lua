@@ -393,3 +393,53 @@ function testCommentAndAttrRef()
     assert_equal(expected, actual)
 end
 
+function testNewlineEscapeExpr()
+    local st = StringTemplate('one$\\n$two')
+    local expected = 'one\ntwo'
+
+    local actual = tostring(st)
+
+    assert_not_nil(actual)
+    assert_equal(expected, actual)
+end
+
+function testCREscapeExpr()
+    local st = StringTemplate('one$\\r$two')
+    local expected = 'one\rtwo'
+
+    local actual = tostring(st)
+
+    assert_not_nil(actual)
+    assert_equal(expected, actual)
+end
+
+function testTabEscapeExpr()
+    local st = StringTemplate('one$\\t$two')
+    local expected = 'one\ttwo'
+
+    local actual = tostring(st)
+
+    assert_not_nil(actual)
+    assert_equal(expected, actual)
+end
+
+function testSpaceEscapeExpr()
+    local st = StringTemplate('one$\\ $two')
+    local expected = 'one two'
+
+    local actual = tostring(st)
+
+    assert_not_nil(actual)
+    assert_equal(expected, actual)
+end
+
+function testMultipleEsacpeExpr()
+    local st = StringTemplate('one$\\n\\r\\t\\ $two')
+    local expected = 'one\n\r\t two'
+
+    local actual = tostring(st)
+
+    assert_not_nil(actual)
+    assert_equal(expected, actual)
+end
+
