@@ -84,11 +84,17 @@ local function processChunks(chunks, st)
     end
 end
 
-function __call(self, templateText, scanner_type)
+function __call(self, templateText, options)
+    local chunks, scanner_type, auto_indent
     local st = {}
     setmetatable(st, mt)
 
-    local chunks
+    if options then
+        scanner_type = options.scanner
+        auto_indent = options.auto_indent 
+    else
+        auto_indent = true
+    end
 
     if templateText then
         local parser = STParser(scanner_type)
@@ -103,6 +109,8 @@ function __call(self, templateText, scanner_type)
     end
 
     st.__chunks = chunks
+    st.__auto_indent = auto_indent
+
     st.tostring = st_tostring
 
     return st;

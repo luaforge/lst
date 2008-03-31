@@ -35,6 +35,7 @@
 local require = require
 local tostring = tostring
 local pcall = pcall
+local print = print
 
 require( 'lunit' )
 
@@ -332,7 +333,11 @@ function testEvalDoubleIndirectProperty()
 end
 
 function testABScanner()
-    local st = StringTemplate('one <foo> three', StringTemplate.ANGLE_BRACKET_SCANNER)
+    local st = StringTemplate('one <foo> three', 
+                                {
+                                    scanner = StringTemplate.ANGLE_BRACKET_SCANNER
+                                }
+                             )
     local expected = 'one two three'
 
     st.foo = 'two'
@@ -345,7 +350,10 @@ end
 
 function testABScannerWithProperty()
     local st = StringTemplate('one <foo.bar> three', 
-                              StringTemplate.ANGLE_BRACKET_SCANNER)
+                                {
+                                    scanner = StringTemplate.ANGLE_BRACKET_SCANNER
+                                }
+                             )
     local expected = 'one two three'
 
     st.foo = { bar = 'two' }
@@ -372,7 +380,11 @@ end
 --  doesn't automatically strip out both.
 --]=]
 function testABComment()
-    local st = StringTemplate('one <! to strip !> two', StringTemplate.ANGLE_BRACKET_SCANNER)
+    local st = StringTemplate('one <! to strip !> two', 
+                                {
+                                    scanner = StringTemplate.ANGLE_BRACKET_SCANNER
+                                }
+                             )
     local expected = 'one  two'
 
     local actual = tostring(st)
@@ -455,3 +467,16 @@ function testAutoIndent()
     assert_equal(expected, actual)
 end
 
+function testNoAutoIndent()
+    local st = StringTemplate('one\n\t$foo; separator="\n"$\nfive',
+                                { auto_indent = false }
+                             )
+    local expected = 'one\n\ttwo\nthree\nfour\nfive'
+
+    st.foo = { 'two', 'three', 'four' }
+
+    local actual = tostring(st)
+
+    assert_not_nil(actual)
+    assert_equal(expected, actual)
+end

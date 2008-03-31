@@ -94,7 +94,7 @@ local function getField(self)
 
     v = v or ''
     local sep = self.options['separator'] or ''
-    if self.indentChunk then
+    if self.indentChunk and self.enclosingTemplate.__auto_indent then
         sep = sep .. self.indentChunk.text
     end
 
