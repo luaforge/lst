@@ -61,8 +61,27 @@ local function st_tostring(self)
     return eval(self)
 end
 
+local function eq(st1, st2)
+    if st1.__auto_indent ~= st2.__auto_indent then
+        return false
+    end
+
+    if st1.__scanner ~= st2.__scanner then
+        return false
+    end
+
+    for i,v in ipairs(st1.__chunks) do
+        if v ~= st2.__chunks[i] then
+            return false
+        end
+    end
+
+    return true
+end
+
 local mt = {
-    __tostring = st_tostring
+    __tostring = st_tostring,
+    __eq = eq,
 }
 
 local function processChunks(chunks, st)
@@ -110,6 +129,7 @@ function __call(self, templateText, options)
 
     st.__chunks = chunks
     st.__auto_indent = auto_indent
+    st.__scanner = scanner_type
 
     st.tostring = st_tostring
 

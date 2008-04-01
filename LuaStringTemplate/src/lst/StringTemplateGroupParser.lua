@@ -43,11 +43,12 @@ module( 'lst.StringTemplateGroupParser' )
 local lpeg = require( 'lpeg' )
 local StringTemplateParser = require( 'lst.StringTemplateParser' )
 local GroupMetaData = require( 'lst.GroupMetaData' )
+local StringTemplate = require( 'lst.StringTemplate' )
+local GroupTemplate = require( 'lst.GroupTemplate' )
 
 local P, S, R, V, C, Cs, Ct = lpeg.P, lpeg.S, lpeg.R, lpeg.V, lpeg.C, lpeg.Cs, lpeg.Ct
 
 local function newMetaData(name, parent, implements)
-
     -- Epsilon case
     if type(implements) == 'string' then
         implements = {}
@@ -58,11 +59,25 @@ local function newMetaData(name, parent, implements)
     return gmd
 end
 
-local scanner = {
+local STOpts = { scanner = StringTemplate.ANGLE_BRACKET_SCANNER }
+
+local function newGroupTemplate(name, arguments, st_text)
+    if type(arguments) == 'string' then
+        arguments = {}
+    end
+
+    local gt = GroupTemplate(name, arguments, StringTemplate(st_text, STOpts))
+
+    return gt
+end
+
+-- Table of terminals (scanner)
+local s = {
     N = R'09',
     AZ = R('__','az','AZ','\127\255'),
     NEWLINE = S'\n\r',
     SPACE = S' \t',
+    WS = S' \t\n\r',
     SEMI = S';',
     COMMA = S',',
     PERIOD = S'.',
@@ -76,6 +91,11 @@ local scanner = {
     EXPR_END_DOLLAR = P'$',
     EXPR_START_BRACKET = P'<' - S'\\',
     EXPR_END_BRACKET = P'>',
+    LPAREN = P'(',
+    RPAREN = P')',
+    TMPL_ASSIGN = P'::=',
+    ML_TMPL_START = P'<<',
+    ML_TMPL_END = P'>>'
 }
 
 -- Predeclare the non-terminals
@@ -85,7 +105,13 @@ local Group,
       GroupParent,
       GroupImplements,
       InterfaceName,
-      Template,
+      GroupTemplates,
+      GroupTemplate,
+      ParamList,
+      NameList,
+      Name,
+      SingleLineTemplate,
+      MultiLineTemplate,
       Map
       =
       V'Group',
@@ -94,30 +120,55 @@ local Group,
       V'GroupParent',
       V'GroupImplements',
       V'InterfaceName',
-      V'Template',
+      V'GroupTemplates',
+      V'GroupTemplate',
+      V'ParamList',
+      V'NameList',
+      V'Name',
+      V'SingleLineTemplate',
+      V'MultiLineTemplate',
       V'Map'
 
 local grammar = {
     "Group",
 
-    Group = Ct(MetaData) * -1,
+    Group = Ct(MetaData * GroupTemplates) * s.WS^0 * -1,
 
-    MetaData = scanner.SPACE^0 * P'group' * scanner.SPACE^1 * 
+    MetaData = s.WS^0 * P'group' * s.SPACE^1 * 
                 (GroupName * GroupParent * GroupImplements/ newMetaData) * 
-                scanner.SEMI * scanner.SPACE^0,
+                s.SEMI * s.WS^0,
 
-    GroupName = C((1 - (scanner.SPACE + scanner.SEMI))^1),
+    GroupName = C((1 - (s.WS + s.SEMI))^1),
 
-    GroupParent = scanner.SPACE^1 * P':' * scanner.SPACE^1 * 
-                    C((1 - (scanner.SPACE + scanner.SEMI))^1) + 
-                  C(scanner.EPSILON),
+    GroupParent = s.WS^1 * P':' * s.WS^1 * 
+                    C((1 - (s.WS + s.SEMI))^1) + 
+                  C(s.EPSILON),
 
-    GroupImplements = scanner.SPACE^1 * P'implements' * scanner.SPACE^1 *
-                        Ct(InterfaceName * (scanner.COMMA * scanner.SPACE^0 * InterfaceName)^0) *
-                        scanner.SPACE^0 +
-                      C(scanner.EPSILON),
+    GroupImplements = s.WS^1 * P'implements' * s.WS^1 *
+                        Ct(InterfaceName * (s.COMMA * s.WS^0 * InterfaceName)^0) *
+                        s.WS^0 +
+                      C(s.EPSILON),
 
-    InterfaceName = C((1 - (scanner.SPACE + scanner.SEMI + scanner.COMMA))^1)
+    InterfaceName = C((1 - (s.WS + s.SEMI + s.COMMA))^1),
+
+    GroupTemplates = Ct(GroupTemplate * (s.WS^0 * GroupTemplate)^0) + C(s.EPSILON),
+
+    GroupTemplate = (C((1 - s.LPAREN)^1) * 
+                        s.LPAREN * s.WS^0 * ParamList * s.RPAREN *
+                        s.WS^0 * s.TMPL_ASSIGN * s.WS^0 *
+                        (SingleLineTemplate + MultiLineTemplate)) / newGroupTemplate,
+
+    ParamList = Ct(NameList) + C(s.EPSILON),
+
+    NameList = Name * (s.COMMA * Name)^0,
+
+    Name = C(s.AZ * (s.AZ + s.N)^0),
+
+    SingleLineTemplate = s.DQUOTE * C((1 - (s.DQUOTE + s.NEWLINE))^0) * s.DQUOTE,
+
+    MultiLineTemplate = s.ML_TMPL_START * s.NEWLINE^-1 *
+                            C((1 - (s.ML_TMPL_END + (s.NEWLINE * s.ML_TMPL_END)))^0) *
+                            s.NEWLINE^-1 * s.ML_TMPL_END,
 }
 
 local parse = function(self, text)
@@ -128,11 +179,11 @@ local parse = function(self, text)
     local result
     if text ~= '' then
         if self.scanner_type == ANGLE_BRACKET_SCANNER then
-            grammar.ExprStart = scanner.EXPR_START_BRACKET
-            grammar.ExprEnd = scanner.EXPR_END_BRACKET
+            grammar.ExprStart = s.EXPR_START_BRACKET
+            grammar.ExprEnd = s.EXPR_END_BRACKET
         else 
-            grammar.ExprStart = scanner.EXPR_START_DOLLAR
-            grammar.ExprEnd = scanner.EXPR_END_DOLLAR
+            grammar.ExprStart = s.EXPR_START_DOLLAR
+            grammar.ExprEnd = s.EXPR_END_DOLLAR
         end
 
         local p = P(grammar)
