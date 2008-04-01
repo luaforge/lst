@@ -28,21 +28,16 @@
     ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
     POSSIBILITY OF SUCH DAMAGE.
 
-    This module tests the low level parsing of a template string into text
-    and expression chunks.
+    This module tests the StringTemplateGroupParser class.
 
 --]]
 
 local require = require
 local pcall = pcall
-local print = print
-local ipairs = ipairs
-local type = type
-local tostring = tostring
 
 require( 'lunit' )
 
-module( 'StringTemplateParserTests', lunit.testcase )
+module( 'GroupParserTests', lunit.testcase )
 
 local assert_table_equal = function(expected, actual)
     assert_table(actual)
@@ -54,26 +49,17 @@ local assert_table_equal = function(expected, actual)
     end
 end
 
-local STParser = require( 'lst.StringTemplateParser' )
-local LiteralChunk = require( 'lst.LiteralChunk' )
-local NewlineChunk = require( 'lst.NewlineChunk' )
-local AttrRefChunk = require( 'lst.AttrRefChunk' )
-local EscapeChunk = require( 'lst.EscapeChunk' )
-local parser, t1, t2, t3, nl, a1, e1
+local STGParser = require( 'lst.StringTemplateGroupParser' )
+local GroupMetaData = require( 'lst.GroupMetaData' )
+
+local parser
 
 function setup()
-    parser = STParser()
-    t1, t2, t3 = LiteralChunk('text1'), LiteralChunk('text2'), LiteralChunk('text3')
-    nl = NewlineChunk()
-    a1 = AttrRefChunk('action1')
-    e1 = EscapeChunk('\n');
+    parser = STGParser()
 end
 
 function teardown()
     parser = nil
-    t1, t2, t3 = nil, nil, nil
-    nl = nil
-    a1 = nil
 end
 
 function testParseNil()
@@ -88,38 +74,40 @@ function testParseEmptyString()
     assert_equal(0, #result)
 end
 
-function testParseJustTextNoNewline()
-    local expected = { LiteralChunk('plain text') }
-    local result = parser:parse('plain text')
+function testGroupName()
+    local result = parser:parse('group test;')
+    local gmd = GroupMetaData('test', '', {})
+    local expected = { gmd }
+
+    assert_table(result)
     assert_table_equal(expected, result)
 end
 
-function testParseJustTextWithNewline()
-    local expected = { t1, nl, t2, nl, t3 }
-    local result = parser:parse('text1\ntext2\ntext3')
+function testInheritsFrom()
+    local result = parser:parse('group test : yadda;')
+    local gmd = GroupMetaData('test', 'yadda', {})
+    local expected = { gmd }
+
+    assert_table(result)
     assert_table_equal(expected, result)
 end
 
-function testParseTextWithAction()
-    local expected = { t1, a1, t2 }
-    local result = parser:parse('text1$action1$text2')
+function testImplements()
+    local result = parser:parse('group test implements a;')
+    local gmd = GroupMetaData('test', '', { 'a' })
+    local expected = { gmd }
+
+    assert_table(result)
     assert_table_equal(expected, result)
 end
 
-function testParseEscapedDollarSign()
-    local expected = { t1, nl, LiteralChunk('te$xt2') }
-    local result = parser:parse('text1\nte\\$xt2')
+function testImplementsMany()
+    local result = parser:parse('group foo implements a, b ; ')
+    local gmd = GroupMetaData('foo', '', { 'a', 'b' })
+    local expected = { gmd }
+
+    assert_table(result)
     assert_table_equal(expected, result)
 end
 
-function testParseComments()
-    local expected = { t1, nl, nl, t2 }
-    local result = parser:parse('text1\n$! stripped out !$\ntext2')
-    assert_table_equal(expected, result)
-end
 
-function testParseEscapeChunk()
-    local expected = { t1, e1, t2 }
-    local result = parser:parse('text1$\\n$text2')
-    assert_table_equal(expected, result)
-end

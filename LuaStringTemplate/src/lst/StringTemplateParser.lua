@@ -165,7 +165,8 @@ local grammar = {
                Ct(AttrOpt * (scanner.COMMA * scanner.SPACE^0 * AttrOpt)^0)) +
                C(scanner.EPSILON),  -- ensures we always get something for the options
 
-    AttrOpt = Ct(C((1 - (scanner.EQUALS + scanner.COMMA))^1) * scanner.EQUALS * scanner.DQUOTE *
+    AttrOpt = Ct(C((1 - (scanner.EQUALS + scanner.COMMA))^1) * 
+                    scanner.EQUALS * scanner.DQUOTE *
                 C((1 - scanner.DQUOTE)^0) * scanner.DQUOTE) +
               Ct(C((1 - (scanner.COMMA + scanner.SPACE + ExprEnd))^1) * C(scanner.EPSILON)),
 

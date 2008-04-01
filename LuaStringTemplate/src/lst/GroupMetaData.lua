@@ -28,12 +28,49 @@
     ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
     POSSIBILITY OF SUCH DAMAGE.
 
-    This file loads all the unit test modules to be executed.
+    A GroupMetaData object holds (surprise) meta-data about the group,
+    including its name.
 
 --]]
 
-require( 'StringTemplateParserTests' )
-require( 'GroupParserTests' )
-require( 'StringTemplateTests' )
+local module = module
+local require = require
+local setmetatable = setmetatable
+local ipairs = ipairs
 
+module( 'lst.GroupMetaData' )
+
+local function eq(gmd1, gmd2)
+    if gmd1.name == gmd2.name and gmd1.parent == gmd2.parent then
+        if gmd1.implements and gmd2.implements then
+            for i,v in ipairs(gmd1.implements) do
+                if gmd1.implements[i] ~= gmd2.implements[i] then
+                    return false
+                end
+            end
+            return true
+        else
+            return false
+        end
+    else
+        return false
+    end
+end
+
+local mt = {
+    __eq = eq
+}
+
+function __call(self, name, parent, implements)
+    gmd = {}
+    setmetatable(gmd, mt)
+
+    gmd.name = name
+    gmd.parent = parent
+    gmd.implements = implements
+
+    return gmd
+end
+
+setmetatable(_M, _M)
 
