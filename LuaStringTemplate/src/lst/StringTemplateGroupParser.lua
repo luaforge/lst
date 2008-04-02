@@ -154,13 +154,13 @@ local grammar = {
     GroupTemplates = Ct(GroupTemplate * (s.WS^0 * GroupTemplate)^0) + C(s.EPSILON),
 
     GroupTemplate = (C((1 - s.LPAREN)^1) * 
-                        s.LPAREN * s.WS^0 * ParamList * s.RPAREN *
+                        s.LPAREN * s.WS^0 * ParamList * s.WS^0 * s.RPAREN *
                         s.WS^0 * s.TMPL_ASSIGN * s.WS^0 *
                         (SingleLineTemplate + MultiLineTemplate)) / newGroupTemplate,
 
     ParamList = Ct(NameList) + C(s.EPSILON),
 
-    NameList = Name * (s.COMMA * Name)^0,
+    NameList = Name * (s.WS^0 * s.COMMA * s.WS^0 * Name)^0,
 
     Name = C(s.AZ * (s.AZ + s.N)^0),
 

@@ -225,3 +225,48 @@ newline in a single line template"
 
     assert_nil(result)  -- should fail to parse
 end
+
+function testALoneMultilineTemplate()
+    local result = parser:parse([=[
+group foo;
+
+t2(a,b) ::= <<
+sub <a> and <b>
+
+>>
+
+]=])
+
+    local gmd = GroupMetaData('foo', '', {})
+    local t2 = GroupTemplate('t2', {'a', 'b'},
+                StringTemplate('sub <a> and <b>\n',
+                                { scanner = StringTemplate.ANGLE_BRACKET_SCANNER }
+                              )
+                            )
+
+    local expected = { gmd, { t2 } }
+
+    assert_table(result)
+    assert_table_equal(expected, result)
+end
+
+function testParamsWithSpaces()
+    local result = parser:parse([=[
+group foo;
+
+t1(a, b, c) ::= "some text"
+
+]=])
+
+    local gmd = GroupMetaData('foo', '', {})
+    local t1 = GroupTemplate('t1', {'a', 'b', 'c'},
+                StringTemplate('some text',
+                                { scanner = StringTemplate.ANGLE_BRACKET_SCANNER }
+                              )
+                            )
+
+    local expected = { gmd, { t1 } }
+
+    assert_table(result)
+    assert_table_equal(expected, result)
+end

@@ -120,3 +120,19 @@ t1() ::= "some text"
     assert_not_nil(stg)
 end
 
+function testLoadAnotherGroupFile()
+    writeGroupFile("g2.stg", [=[
+group g2;
+
+t2( a, b, c, d ) ::= <<
+
+Some <a>, a <b>, and <c> <\n>
+
+>>
+
+]=])
+
+    local stg = StringTemplateGroup('g2.stg', tmpDir)
+
+    assert_not_nil(stg)
+end
