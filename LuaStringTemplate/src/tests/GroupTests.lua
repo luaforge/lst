@@ -120,11 +120,11 @@ t1() ::= "some text"
     assert_not_nil(stg)
 end
 
-function testLoadAnotherGroupFile()
+function testGetInstanceOf()
     writeGroupFile("g2.stg", [=[
 group g2;
 
-t2( a, b, c, d ) ::= <<
+t2( a, b, c ) ::= <<
 
 Some <a>, a <b>, and <c> <\n>
 
@@ -133,6 +133,33 @@ Some <a>, a <b>, and <c> <\n>
 ]=])
 
     local stg = StringTemplateGroup('g2.stg', tmpDir)
+    local t2 = stg:getInstanceOf('t2')
+
+    t2.a = 'foo'
+    t2.b = 'bar'
+    t2.c = 'baz'
+
+    local expected = '\nSome foo, a bar, and baz \n\n'
+    local result = tostring(t2)
 
     assert_not_nil(stg)
+    assert_not_nil(t2)
+    assert_not_nil(result)
+    assert_equal(expected, result)
 end
+
+function testGetInstanceOfMissingTemplate()
+    writeGroupFile('g3.stg', [=[
+group g3;
+
+t1() ::= "blah"
+
+]=])
+
+    local stg = StringTemplateGroup('g3.stg', tmpDir)
+    local t2 = stg:getInstanceOf('t2')
+
+    assert_not_nil(stg)
+    assert_nil(t2)
+end
+
