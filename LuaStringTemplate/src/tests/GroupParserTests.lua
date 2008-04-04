@@ -39,25 +39,36 @@ local tostring = tostring
 local print = print
 local type = type
 local getmetatable = getmetatable
+local string_rep = string.rep
 
 require( 'lunit' )
 
 module( 'GroupParserTests', lunit.testcase )
 
 local utils = require( 'utils' )
+local STGParser = require( 'lst.StringTemplateGroupParser' )
+local StringTemplate = require( 'lst.StringTemplate' )
+local GroupMetaData = require( 'lst.GroupMetaData' )
+local GroupTemplate = require( 'lst.GroupTemplate' )
+local GroupMap = require( 'lst.GroupMap' )
 
-function assert_table_equal(expected, actual)
+local stOpts = { scanner = StringTemplate.ANGLE_BRACKET_SCANNER }
+
+function assert_table_equal(expected, actual, debug, depth)
     assert_table(actual)
     assert_equal(#expected, #actual)
-
-    --[[
-    utils.dump_table('expected', expected)
-    utils.dump_table('actual', actual)
-    --]]
+    depth = depth or 1
+    debug = debug or false
 
     for k,v in pairs(expected) do
         local v2 = actual[k]
         local eq = tostring(v == v2)
+        local leader = string_rep('-', depth)
+        local leader = leader .. '>'
+
+        if debug then 
+            print(leader .. ' k:', k, ' v:', v, 'v2:', v2, 'eq:', eq) 
+        end
         if type(v) == 'table' and type(v2) == 'table' then
             --[[
             --  If the objects have the isA function, they are 
@@ -65,20 +76,24 @@ function assert_table_equal(expected, actual)
             --   __eq metamethods.
             --]]
             if type(v.isA) == 'function' and type(v2.isA) == 'function' then
+                if debug then
+                    print(leader .. ' objects are lst classes')
+                end
                 assert_equal(v, v2)
             else
-                assert_table_equal(v, v2)
+                if debug then
+                    print(leader .. ' regular tables, recurse into assert_table_equal')
+                end
+                assert_table_equal(v, v2, debug, depth + 1)
             end
         else
+            if debug then
+                print(leader .. ' regular eq comparison')
+            end
             assert_equal(v, actual[k])
         end
     end
 end
-
-local STGParser = require( 'lst.StringTemplateGroupParser' )
-local StringTemplate = require( 'lst.StringTemplate' )
-local GroupMetaData = require( 'lst.GroupMetaData' )
-local GroupTemplate = require( 'lst.GroupTemplate' )
 
 local parser
 
@@ -226,6 +241,8 @@ newline in a single line template"
     assert_nil(result)  -- should fail to parse
 end
 
+local stOpts = { scanner = StringTemplate.ANGLE_BRACKET_SCANNER }
+
 function testALoneMultilineTemplate()
     local result = parser:parse([=[
 group foo;
@@ -239,9 +256,7 @@ sub <a> and <b>
 
     local gmd = GroupMetaData('foo', '', {})
     local t2 = GroupTemplate('t2', {'a', 'b'},
-                StringTemplate('sub <a> and <b>\n',
-                                { scanner = StringTemplate.ANGLE_BRACKET_SCANNER }
-                              )
+                StringTemplate('sub <a> and <b>\n', stOpts)
                             )
 
     local expected = { gmd, { t2 } }
@@ -260,13 +275,42 @@ t1(a, b, c) ::= "some text"
 
     local gmd = GroupMetaData('foo', '', {})
     local t1 = GroupTemplate('t1', {'a', 'b', 'c'},
-                StringTemplate('some text',
-                                { scanner = StringTemplate.ANGLE_BRACKET_SCANNER }
-                              )
+                StringTemplate('some text', stOpts)
                             )
 
     local expected = { gmd, { t1 } }
 
     assert_table(result)
     assert_table_equal(expected, result)
+end
+
+function testMap()
+    local result = parser:parse([=[
+group foo;
+
+typeInitMap ::= [
+        "int" : "0",
+        "long" : "0",
+        "float" : "0.0",
+        "double" : "0.0",
+        "boolean" : "false"
+    ]
+
+]=])
+
+    local gmd = GroupMetaData('foo', '', {})
+    local m1 = GroupMap('typeInitMap', 
+                        { 
+                            { 'int', StringTemplate('0', stOpts) },
+                            { 'long', StringTemplate('0', stOpts) },
+                            { 'float', StringTemplate('0.0', stOpts) },
+                            { 'double', StringTemplate('0.0', stOpts) },
+                            { 'boolean', StringTemplate('false', stOpts) }
+                        }
+                       )
+
+   local expected = { gmd, { m1 } }
+
+   assert_table(result)
+   assert_table_equal(expected, result)
 end

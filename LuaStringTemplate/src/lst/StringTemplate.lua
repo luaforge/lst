@@ -84,6 +84,10 @@ local mt = {
     __eq = eq,
 }
 
+local function isA(self, class)
+    return _M == class
+end
+
 local function processChunks(chunks, st)
     for i,chunk in ipairs(chunks) do
         chunk:setEnclosingTemplate(st)
@@ -101,6 +105,14 @@ local function processChunks(chunks, st)
             end
         end
     end
+end
+
+local function setEnclosingGroup(self, group)
+    self.__enclosing_group = group
+end
+
+local function getEnclosingGroup(self)
+    return self.__enclosing_group
 end
 
 function __call(self, templateText, options)
@@ -132,6 +144,9 @@ function __call(self, templateText, options)
     st.__scanner = scanner_type
 
     st.tostring = st_tostring
+    st.getEnclosingGroup = getEnclosingGroup
+    st.setEnclosingGroup = setEnclosingGroup
+    st.isA = isA
 
     return st;
 end

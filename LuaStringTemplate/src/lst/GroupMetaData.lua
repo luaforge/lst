@@ -61,6 +61,10 @@ local mt = {
     __eq = eq
 }
 
+local function isA(self, class)
+    return _M == class
+end
+
 function __call(self, name, parent, implements)
     gmd = {}
     setmetatable(gmd, mt)
@@ -68,6 +72,8 @@ function __call(self, name, parent, implements)
     gmd.name = name
     gmd.parent = parent
     gmd.implements = implements
+
+    gmd.isA = isA
 
     return gmd
 end

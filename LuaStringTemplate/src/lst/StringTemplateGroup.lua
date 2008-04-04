@@ -49,6 +49,7 @@ module( 'lst.StringTemplateGroup' )
 
 local STGParser = require( 'lst.StringTemplateGroupParser' )
 local StringTemplate = require( 'lst.StringTemplate' )
+local GroupTemplate = require( 'lst.GroupTemplate' )
 
 local function eq(stg1, stg2)
     return true
@@ -62,8 +63,15 @@ local function processParts(self, parts)
     self.templates = {}
 
     for _,v in ipairs(parts[2]) do
-        self.templates[v.name] = v
+        if v:isA(GroupTemplate) then
+            self.templates[v.name] = v
+            v:setEnclosingGroup(self)
+        end
     end
+end
+
+local function isA(self, class)
+    return _M == class
 end
 
 local function loadGroupFile(self)
@@ -137,6 +145,7 @@ function __call(self, ...)
     loadGroupFile(stg)
 
     stg.getInstanceOf = getInstanceOf
+    stg.isA = isA
 
     return stg
 end

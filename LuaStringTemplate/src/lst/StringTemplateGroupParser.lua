@@ -37,6 +37,7 @@ local require = require
 local setmetatable = setmetatable
 local print = print
 local type = type
+local ipairs = ipairs
 
 module( 'lst.StringTemplateGroupParser' )
 
@@ -45,6 +46,7 @@ local StringTemplateParser = require( 'lst.StringTemplateParser' )
 local GroupMetaData = require( 'lst.GroupMetaData' )
 local StringTemplate = require( 'lst.StringTemplate' )
 local GroupTemplate = require( 'lst.GroupTemplate' )
+local GroupMap = require( 'lst.GroupMap' )
 
 local P, S, R, V, C, Cs, Ct = lpeg.P, lpeg.S, lpeg.R, lpeg.V, lpeg.C, lpeg.Cs, lpeg.Ct
 
@@ -71,6 +73,20 @@ local function newGroupTemplate(name, arguments, st_text)
     return gt
 end
 
+local function newGroupMap(name, members)
+    if type(members) == 'string' then
+        members = {}
+    end
+
+    for _,v in ipairs(members) do
+        v[2] = StringTemplate(v[2], STOpts)
+    end
+
+    local gm = GroupMap(name, members)
+
+    return gm
+end
+
 -- Table of terminals (scanner)
 local s = {
     N = R'09',
@@ -78,11 +94,12 @@ local s = {
     NEWLINE = S'\n\r',
     SPACE = S' \t',
     WS = S' \t\n\r',
-    SEMI = S';',
-    COMMA = S',',
-    PERIOD = S'.',
+    SEMI = P';',
+    COLON = P':',
+    COMMA = P',',
+    PERIOD = P'.',
     EQUALS = P'=',
-    DQUOTE = S'"',
+    DQUOTE = P'"',
     NULL = P'null',
     EPSILON = P(true),
     ESCAPE = S'\\',
@@ -95,7 +112,10 @@ local s = {
     RPAREN = P')',
     TMPL_ASSIGN = P'::=',
     ML_TMPL_START = P'<<',
-    ML_TMPL_END = P'>>'
+    ML_TMPL_END = P'>>',
+    LSQRB = P'[',
+    RSQRB = P']'
+
 }
 
 -- Predeclare the non-terminals
@@ -105,14 +125,16 @@ local Group,
       GroupParent,
       GroupImplements,
       InterfaceName,
-      GroupTemplates,
-      GroupTemplate,
+      GroupElements,
+      GroupTmpl,
       ParamList,
       NameList,
       Name,
       SingleLineTemplate,
       MultiLineTemplate,
-      Map
+      GroupMap,
+      GroupMapMembers,
+      GroupMapMember
       =
       V'Group',
       V'MetaData',
@@ -120,19 +142,21 @@ local Group,
       V'GroupParent',
       V'GroupImplements',
       V'InterfaceName',
-      V'GroupTemplates',
-      V'GroupTemplate',
+      V'GroupElements',
+      V'GroupTmpl',
       V'ParamList',
       V'NameList',
       V'Name',
       V'SingleLineTemplate',
       V'MultiLineTemplate',
-      V'Map'
+      V'GroupMap',
+      V'GroupMapMembers',
+      V'GroupMapMember'
 
 local grammar = {
     "Group",
 
-    Group = Ct(MetaData * GroupTemplates) * s.WS^0 * -1,
+    Group = Ct(MetaData * GroupElements) * s.WS^0 * -1,
 
     MetaData = s.WS^0 * P'group' * s.SPACE^1 * 
                 (GroupName * GroupParent * GroupImplements/ newMetaData) * 
@@ -151,9 +175,9 @@ local grammar = {
 
     InterfaceName = C((1 - (s.WS + s.SEMI + s.COMMA))^1),
 
-    GroupTemplates = Ct(GroupTemplate * (s.WS^0 * GroupTemplate)^0) + C(s.EPSILON),
+    GroupElements = Ct(((GroupTmpl + GroupMap) * s.WS^0)^1) + C(s.EPSILON),
 
-    GroupTemplate = (C((1 - s.LPAREN)^1) * 
+    GroupTmpl = (C((1 - s.LPAREN)^1) * 
                         s.LPAREN * s.WS^0 * ParamList * s.WS^0 * s.RPAREN *
                         s.WS^0 * s.TMPL_ASSIGN * s.WS^0 *
                         (SingleLineTemplate + MultiLineTemplate)) / newGroupTemplate,
@@ -169,6 +193,16 @@ local grammar = {
     MultiLineTemplate = s.ML_TMPL_START * s.NEWLINE^-1 *
                             C((1 - (s.ML_TMPL_END + (s.NEWLINE * s.ML_TMPL_END)))^0) *
                             s.NEWLINE^-1 * s.ML_TMPL_END,
+
+    GroupMap = (C((1 - (s.WS + s.TMPL_ASSIGN))^1) * s.WS^0 * s.TMPL_ASSIGN * s.WS^0 *
+                s.LSQRB * s.WS^0 * Ct(GroupMapMembers) * s.WS^0 * s.COMMA^0 * s.RSQRB) / 
+                newGroupMap,
+
+    GroupMapMembers = GroupMapMember * (s.WS^0 * s.COMMA * s.WS^0 * GroupMapMember)^0,
+
+    GroupMapMember = Ct(s.DQUOTE * C((1-(s.DQUOTE + s.NEWLINE))^1) * s.DQUOTE * 
+                        s.WS^0 * s.COLON * s.WS^0 *
+                        (SingleLineTemplate + MultiLineTemplate)),
 }
 
 local parse = function(self, text)

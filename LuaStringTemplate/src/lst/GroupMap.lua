@@ -28,8 +28,7 @@
     ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
     POSSIBILITY OF SUCH DAMAGE.
 
-    A GroupTemplate object holds a named instance of a StringTemplate object,
-    including its name and a list of formal arguments.
+    A GroupMap object holds named instances of StringTemplate objects in a table.
 
 --]]
 
@@ -38,51 +37,45 @@ local require = require
 local setmetatable = setmetatable
 local ipairs = ipairs
 local print = print
+local pairs = pairs
 
-module( 'lst.GroupTemplate' )
+module( 'lst.GroupMap' )
 
-local function eq(gt1, gt2)
-    if gt1.name == gt2.name and gt1.st == gt2.st then
-        for i,v in ipairs(gt1.arguments) do
-            if gt1.arguments[i] ~= gt2.arguments[i] then
+local function eq(gm1, gm2)
+    if gm1._name ~= gm2._name then
+        return false
+    end
+
+    for k,v in pairs(gm1) do
+        if k ~= '_name' then
+            v2 = gm2[k]
+            if v ~= v2 then
                 return false
             end
         end
-        return true
-    else
-        return false
     end
+
+    return true
 end
 
 local mt = {
     __eq = eq
 }
 
-local function setEnclosingGroup(self, group)
-    self.st:setEnclosingGroup(group)
-end
-
-local function getEnclosingGroup(self)
-    return self.st:getEnclosingGroup()
-end
-
 local function isA(self, class)
     return _M == class
 end
 
-function __call(self, name, arguments, st)
-    gt = {}
-    setmetatable(gt, mt)
+function __call(self, name, mapping)
+    gm = {}
+    setmetatable(gm, mt)
 
-    gt.name = name
-    gt.arguments = arguments
-    gt.st = st
+    gm._name = name
+    for _,m in ipairs(mapping) do
+        gm[m[1]] = m[2]
+    end
 
-    gt.getEnclosingGroup = getEnclosingGroup
-    gt.setEnclosingGroup = setEnclosingGroup
-    gt.isA = isA
-
-    return gt
+    return gm
 end
 
 setmetatable(_M, _M)
