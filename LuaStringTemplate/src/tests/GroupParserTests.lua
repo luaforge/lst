@@ -52,49 +52,10 @@ local GroupMetaData = require( 'lst.GroupMetaData' )
 local GroupTemplate = require( 'lst.GroupTemplate' )
 local GroupMap = require( 'lst.GroupMap' )
 
+local utils = require( 'utils' )
+local assert_table_equal = utils.assert_table_equal
+
 local stOpts = { scanner = StringTemplate.ANGLE_BRACKET_SCANNER }
-
-function assert_table_equal(expected, actual, debug, depth)
-    assert_table(actual)
-    assert_equal(#expected, #actual)
-    depth = depth or 1
-    debug = debug or false
-
-    for k,v in pairs(expected) do
-        local v2 = actual[k]
-        local eq = tostring(v == v2)
-        local leader = string_rep('-', depth)
-        local leader = leader .. '>'
-
-        if debug then 
-            print(leader .. ' k:', k, ' v:', v, 'v2:', v2, 'eq:', eq) 
-        end
-        if type(v) == 'table' and type(v2) == 'table' then
-            --[[
-            --  If the objects have the isA function, they are 
-            --   LuaStringTemplate custom classes, and they have 
-            --   __eq metamethods.
-            --]]
-            if type(v.isA) == 'function' and type(v2.isA) == 'function' then
-                if debug then
-                    print(leader .. ' objects are lst classes')
-                end
-                assert_equal(v, v2)
-            else
-                if debug then
-                    print(leader .. ' regular tables, recurse into assert_table_equal')
-                end
-                assert_table_equal(v, v2, debug, depth + 1)
-            end
-        else
-            if debug then
-                print(leader .. ' regular eq comparison')
-            end
-            assert_equal(v, actual[k])
-        end
-    end
-end
-
 local parser
 
 function setup()

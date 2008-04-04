@@ -44,29 +44,26 @@ require( 'lunit' )
 
 module( 'StringTemplateParserTests', lunit.testcase )
 
-local assert_table_equal = function(expected, actual)
-    assert_table(actual)
-    assert_equal(#expected, #actual)
+local utils = require( 'utils' )
 
-    for i = 1, #expected do
-        -- print(expected[i], actual[i])
-        assert_equal(expected[i], actual[i])
-    end
-end
+local assert_table_equal = utils.assert_table_equal
 
 local STParser = require( 'lst.StringTemplateParser' )
 local LiteralChunk = require( 'lst.LiteralChunk' )
 local NewlineChunk = require( 'lst.NewlineChunk' )
 local AttrRefChunk = require( 'lst.AttrRefChunk' )
 local EscapeChunk = require( 'lst.EscapeChunk' )
-local parser, t1, t2, t3, nl, a1, e1
+local TemplateRefChunk = require( 'lst.TemplateRefChunk' )
+local parser, t1, t2, t3, nl, a1, e1, tr1, tr2
 
 function setup()
     parser = STParser()
     t1, t2, t3 = LiteralChunk('text1'), LiteralChunk('text2'), LiteralChunk('text3')
     nl = NewlineChunk()
     a1 = AttrRefChunk('action1')
-    e1 = EscapeChunk('\n');
+    e1 = EscapeChunk('\n')
+    tr1 = TemplateRefChunk('ref1', {})
+    tr2 = TemplateRefChunk('ref2', { a = 'z', b = 'y' })
 end
 
 function teardown()
@@ -74,6 +71,7 @@ function teardown()
     t1, t2, t3 = nil, nil, nil
     nl = nil
     a1 = nil
+    tr1, tr2 = nil, nil
 end
 
 function testParseNil()
@@ -123,3 +121,16 @@ function testParseEscapeChunk()
     local result = parser:parse('text1$\\n$text2')
     assert_table_equal(expected, result)
 end
+
+function testParseTemplateRef()
+    local expected = { t1, tr1, t2 }
+    local result = parser:parse('text1$ref1()$text2')
+    assert_table_equal(expected, result)
+end
+
+function testParseTemplateRefWithParams()
+    local expected = { t1, tr2, t2 }
+    local result = parser:parse('text1$ref2(a=z, b=y)$text2')
+    assert_table_equal(expected, result)
+end
+

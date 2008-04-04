@@ -51,6 +51,7 @@ local LiteralChunk = require( 'lst.LiteralChunk' )
 local NewlineChunk = require( 'lst.NewlineChunk' )
 local AttrRefChunk = require( 'lst.AttrRefChunk' )
 local EscapeChunk = require( 'lst.EscapeChunk' )
+local TemplateRefChunk = require( 'lst.TemplateRefChunk' )
 
 local P, S, R, V, C, Cs, Ct = lpeg.P, lpeg.S, lpeg.R, lpeg.V, lpeg.C, lpeg.Cs, lpeg.Ct
 
@@ -82,11 +83,26 @@ local function newEscapeExpr(escapes)
     return EscapeChunk(escStr)
 end
 
+local function newTemplateRef(template, params)
+    --print('template:', template, 'params:', params)
+    local actual_params = {}
+
+    if type(params) == 'table' then
+        for i=1, #params, 2 do
+            --print('param', 'name:', params[i], 'value:', params[i+1])
+            actual_params[params[i]] = params[i+1]
+        end
+    end
+
+    return TemplateRefChunk(template, actual_params)
+end
+
 local scanner = {
     N = R'09',
     AZ = R('__','az','AZ','\127\255'),
     NEWLINE = S'\n\r',
     SPACE = S' \t',
+    WS = S' \t\n\r',
     SEMI = S';',
     COMMA = S',',
     PERIOD = S'.',
@@ -101,6 +117,8 @@ local scanner = {
     EXPR_END_DOLLAR = P'$',
     EXPR_START_BRACKET = P'<' - S'\\',
     EXPR_END_BRACKET = P'>',
+    LBRACE = P'(',
+    RBRACE = P')',
 }
 
 local literalEscapes = {
@@ -129,7 +147,12 @@ local Chunk,
       AttrOpt,
       AttrRefExpr,
       CommentExpr,
-      EscapeExpr
+      EscapeExpr,
+      TemplateRef,
+      TemplateParamList,
+      TemplateParam,
+      Name,
+      TemplateRefExpr
       = 
       V'Chunk', 
       V'Newline', 
@@ -144,10 +167,16 @@ local Chunk,
       V'AttrOpt',
       V'AttrRefExpr',
       V'CommentExpr',
-      V'EscapeExpr'
+      V'EscapeExpr',
+      V'TemplateRef',
+      V'TemplateParamList',
+      V'TemplateParam',
+      V'Name',
+      V'TemplateRefExpr'
 
 local grammar = {
     "Template",
+
     Template = Ct(Chunk^1) * -1,
 
     Chunk = Literal + Expr + Newline,
@@ -178,7 +207,21 @@ local grammar = {
 
     EscapeExpr = ExprStart * Ct(Cs(((scanner.ESCAPE * S'ntr ') / exprEscapes))^1) / newEscapeExpr * ExprEnd,
 
-    Expr = EscapeExpr + CommentExpr + AttrRefExpr,
+    TemplateRef = C((1 - scanner.LBRACE)^1),
+
+    TemplateParamList = TemplateParam * (scanner.WS^0 * scanner.COMMA * scanner.WS^0 * TemplateParam)^0,
+
+    TemplateParam = Name * scanner.WS^0 * scanner.EQUALS * scanner.WS^0 * Name,
+
+    Name = C(scanner.AZ * (scanner.AZ + scanner.N)^0),
+
+    TemplateRefExpr = ExprStart * (TemplateRef * 
+                        scanner.LBRACE * scanner.WS^0 *
+                        (Ct(TemplateParamList) + scanner.EPSILON) * scanner.WS^0 *
+                        scanner.RBRACE) / newTemplateRef *
+                        ExprEnd,
+
+    Expr = EscapeExpr + CommentExpr + TemplateRefExpr + AttrRefExpr,
 
     Literal = Cs(((LiteralEscape + 1) - (ExprStart + Newline))^1) / newLiteral
 }
