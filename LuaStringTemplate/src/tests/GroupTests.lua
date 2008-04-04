@@ -163,3 +163,27 @@ t1() ::= "blah"
     assert_nil(t2)
 end
 
+--[[
+--  This test really just checks that the map is correctly 
+--  parsed.  We can't check that it works until we have map
+--  references implemented in a template.
+--]]
+function testBasicMap()
+    writeGroupFile('g4.stg', [=[
+group g4;
+
+initTypeMap ::= [
+    "int" : "0",
+    "long" : "0",
+    "float" : "0.0",
+    "double" : "0.0",
+    "boolean" : "false"
+]
+
+]=])
+
+    local stg = StringTemplateGroup('g4.stg', tmpDir)
+
+    assert_not_nil(stg)
+end
+

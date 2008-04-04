@@ -50,6 +50,7 @@ module( 'lst.StringTemplateGroup' )
 local STGParser = require( 'lst.StringTemplateGroupParser' )
 local StringTemplate = require( 'lst.StringTemplate' )
 local GroupTemplate = require( 'lst.GroupTemplate' )
+local GroupMap = require( 'lst.GroupMap' )
 
 local function eq(stg1, stg2)
     return true
@@ -61,11 +62,17 @@ local mt = {
 
 local function processParts(self, parts)
     self.templates = {}
+    self.maps = {}
 
     for _,v in ipairs(parts[2]) do
         if v:isA(GroupTemplate) then
             self.templates[v.name] = v
             v:setEnclosingGroup(self)
+        elseif v:isA(GroupMap) then
+            self.maps[v.name] = v
+            v:setEnclosingGroup(self)
+        else
+            error('Unknown part type')
         end
     end
 end

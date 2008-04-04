@@ -66,14 +66,26 @@ local function isA(self, class)
     return _M == class
 end
 
+local function setEnclosingGroup(self, group)
+    self.enclosing_group = group
+end
+
+local function getEnclosingGroup(self)
+    return self.enclosing_group
+end
+
 function __call(self, name, mapping)
     gm = {}
     setmetatable(gm, mt)
 
-    gm._name = name
+    gm.name = name
     for _,m in ipairs(mapping) do
         gm[m[1]] = m[2]
     end
+
+    gm.isA = isA
+    gm.setEnclosingGroup = setEnclosingGroup
+    gm.getEnclosingGroup = getEnclosingGroup
 
     return gm
 end
