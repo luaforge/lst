@@ -97,7 +97,8 @@ local function newTemplateRef(template, params)
     return TemplateRefChunk(template, actual_params)
 end
 
-local scanner = {
+-- Grammar terminals
+local s = {
     N = R'09',
     AZ = R('__','az','AZ','\127\255'),
     NEWLINE = S'\n\r',
@@ -181,44 +182,46 @@ local grammar = {
 
     Chunk = Literal + Expr + Newline,
 
-    Newline = C(scanner.NEWLINE) / newNewline,
+    Newline = C(s.NEWLINE) / newNewline,
 
-    LiteralEscape = (scanner.ESCAPE * S'$<') / literalEscapes,
+    LiteralEscape = (s.ESCAPE * S'$<') / literalEscapes,
 
-    AttrRef = -(scanner.BANG + scanner.ESCAPE) * C((1 - (ExprEnd + scanner.SEMI + scanner.PERIOD))^1),
+    AttrRef = -(s.BANG + s.ESCAPE) * C((1 - (ExprEnd + s.SEMI + s.PERIOD))^1),
 
-    AttrProp = (scanner.PERIOD * C((1 - (ExprEnd + scanner.SEMI))^1)) +
-               C(scanner.EPSILON),
+    AttrProp = (s.PERIOD * C((1 - (ExprEnd + s.SEMI))^1)) +
+               C(s.EPSILON),
 
-    AttrOpts = (scanner.SEMI * scanner.SPACE^0 * 
-               Ct(AttrOpt * (scanner.COMMA * scanner.SPACE^0 * AttrOpt)^0)) +
-               C(scanner.EPSILON),  -- ensures we always get something for the options
+    AttrOpts = (s.SEMI * s.SPACE^0 * 
+                    Ct(AttrOpt * (s.COMMA * s.SPACE^0 * AttrOpt)^0)) +
+               C(s.EPSILON),  -- ensures we always get something for the options
 
-    AttrOpt = Ct(C((1 - (scanner.EQUALS + scanner.COMMA))^1) * 
-                    scanner.EQUALS * scanner.DQUOTE *
-                Cs(((((scanner.ESCAPE * S'ntr ')/exprEscapes) + 1) - scanner.DQUOTE)^0) * scanner.DQUOTE) +
-              Ct(C((1 - (scanner.COMMA + scanner.SPACE + ExprEnd))^1) * C(scanner.EPSILON)),
+    AttrOpt = Ct(C((1 - (s.EQUALS + s.COMMA))^1) * s.EQUALS * s.DQUOTE *
+                Cs(((((s.ESCAPE * S'ntr ')/exprEscapes) + 1) - s.DQUOTE)^0) 
+                * s.DQUOTE) +
+              Ct(C((1 - (s.COMMA + s.SPACE + ExprEnd))^1) * C(s.EPSILON)),
 
     AttrRefExpr = ExprStart * 
-                        (AttrRef * AttrProp * AttrOpts / newAttrRefExpr) * 
-                        ExprEnd,
+                    (AttrRef * AttrProp * AttrOpts / newAttrRefExpr) * 
+                    ExprEnd,
 
-    CommentExpr = ExprStart * scanner.BANG * (1 - scanner.BANG)^0 * scanner.BANG * ExprEnd,
+    CommentExpr = ExprStart * s.BANG * (1 - s.BANG)^0 * s.BANG * ExprEnd,
 
-    EscapeExpr = ExprStart * Ct(Cs(((scanner.ESCAPE * S'ntr ') / exprEscapes))^1) / newEscapeExpr * ExprEnd,
+    EscapeExpr = ExprStart * 
+                    Ct(Cs(((s.ESCAPE * S'ntr ') / exprEscapes))^1) / newEscapeExpr * 
+                    ExprEnd,
 
-    TemplateRef = C((1 - scanner.LBRACE)^1),
+    TemplateRef = C((1 - s.LBRACE)^1),
 
-    TemplateParamList = TemplateParam * (scanner.WS^0 * scanner.COMMA * scanner.WS^0 * TemplateParam)^0,
+    TemplateParamList = TemplateParam * (s.WS^0 * s.COMMA * s.WS^0 * TemplateParam)^0,
 
-    TemplateParam = Name * scanner.WS^0 * scanner.EQUALS * scanner.WS^0 * Name,
+    TemplateParam = Name * s.WS^0 * s.EQUALS * s.WS^0 * Name,
 
-    Name = C(scanner.AZ * (scanner.AZ + scanner.N)^0),
+    Name = C(s.AZ * (s.AZ + s.N)^0),
 
     TemplateRefExpr = ExprStart * (TemplateRef * 
-                        scanner.LBRACE * scanner.WS^0 *
-                        (Ct(TemplateParamList) + scanner.EPSILON) * scanner.WS^0 *
-                        scanner.RBRACE) / newTemplateRef *
+                        s.LBRACE * s.WS^0 *
+                        (Ct(TemplateParamList) + s.EPSILON) * s.WS^0 *
+                        s.RBRACE) / newTemplateRef *
                         ExprEnd,
 
     Expr = EscapeExpr + CommentExpr + TemplateRefExpr + AttrRefExpr,
@@ -239,11 +242,11 @@ local parse = function(self, text)
     if text ~= '' then
 
         if self.scanner_type == ANGLE_BRACKET_SCANNER then
-            grammar.ExprStart = scanner.EXPR_START_BRACKET
-            grammar.ExprEnd = scanner.EXPR_END_BRACKET
+            grammar.ExprStart = s.EXPR_START_BRACKET
+            grammar.ExprEnd = s.EXPR_END_BRACKET
         else 
-            grammar.ExprStart = scanner.EXPR_START_DOLLAR
-            grammar.ExprEnd = scanner.EXPR_END_DOLLAR
+            grammar.ExprStart = s.EXPR_START_DOLLAR
+            grammar.ExprEnd = s.EXPR_END_DOLLAR
         end
 
         local p = P(grammar)
