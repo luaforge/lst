@@ -101,8 +101,8 @@ function testEvalAttrWithProperty()
 end
 
 function testEvalAttrWithPropertyAndSep()
-    local st = StringTemplate('one $foo.bar; separator="*"$ three')
-    local expected = 'one two*two.five three'
+    local st = StringTemplate('one $foo.bar; separator="\\n"$ three')
+    local expected = 'one two\ntwo.five three'
 
     st['foo'] = { bar = { 'two', 'two.five' } }
 
@@ -456,8 +456,8 @@ function testMultipleEsacpeExpr()
 end
 
 function testAutoIndent()
-    local st = StringTemplate('one\n\t$foo; separator="\n"$\nfive')
-    local expected = 'one\n\ttwo\n\tthree\n\tfour\nfive'
+    local st = StringTemplate('one\n\n\t$foo; separator="\\n"$\nfive')
+    local expected = 'one\n\n\ttwo\n\tthree\n\tfour\nfive'
 
     st.foo = { 'two', 'three', 'four' }
 
@@ -468,10 +468,10 @@ function testAutoIndent()
 end
 
 function testNoAutoIndent()
-    local st = StringTemplate('one\n\t$foo; separator="\n"$\nfive',
+    local st = StringTemplate('one\n\n\t$foo; separator="\\n"$\nfive',
                                 { auto_indent = false }
                              )
-    local expected = 'one\n\ttwo\nthree\nfour\nfive'
+    local expected = 'one\n\n\ttwo\nthree\nfour\nfive'
 
     st.foo = { 'two', 'three', 'four' }
 

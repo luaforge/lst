@@ -196,7 +196,7 @@ local grammar = {
 
     AttrOpt = Ct(C((1 - (scanner.EQUALS + scanner.COMMA))^1) * 
                     scanner.EQUALS * scanner.DQUOTE *
-                C((1 - scanner.DQUOTE)^0) * scanner.DQUOTE) +
+                Cs(((((scanner.ESCAPE * S'ntr ')/exprEscapes) + 1) - scanner.DQUOTE)^0) * scanner.DQUOTE) +
               Ct(C((1 - (scanner.COMMA + scanner.SPACE + ExprEnd))^1) * C(scanner.EPSILON)),
 
     AttrRefExpr = ExprStart * 

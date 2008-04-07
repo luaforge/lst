@@ -35,7 +35,9 @@
 local module = module
 local require = require
 local setmetatable = setmetatable
+local getmetatable = getmetatable
 local pairs = pairs
+local tostring = tostring
 
 module( 'lst.TemplateRefChunk' )
 
@@ -64,7 +66,31 @@ local mt = {
 }
 
 local function eval(self)
-    return self.template
+    local et = self:getEnclosingTemplate()
+    local stg = et:getEnclosingGroup()
+    local template = stg:getInstanceOf(self.template)
+    local result
+
+    if template then
+        local tmt = getmetatable(template)
+        tmt.__index = et
+        
+        for k,v in pairs(self.params) do
+            template[k] = et[v]
+        end
+
+        result = tostring(template)
+
+        for k,_ in pairs(self.params) do
+            template[k] = nil
+        end
+
+        tmt.__index = nil
+    else
+        result = ''
+    end
+
+    return result
 end
 
 local function isA(self, class)
@@ -73,6 +99,10 @@ end
 
 local function setEnclosingTemplate(self, template)
     self.enclosingTemplate = template
+end
+
+local function getEnclosingTemplate(self)
+    return self.enclosingTemplate
 end
 
 local function setIndentChunk(self, chunk)
@@ -88,6 +118,7 @@ function __call(self, template, params)
 
     trc.eval = eval
     trc.setEnclosingTemplate = setEnclosingTemplate
+    trc.getEnclosingTemplate = getEnclosingTemplate
     trc.isA = isA
     trc.setIndentChunk = setIndentChunk
 

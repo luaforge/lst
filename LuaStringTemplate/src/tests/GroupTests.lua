@@ -46,6 +46,8 @@ require( 'lunit' )
 
 module( 'GroupTests', lunit.testcase )
 
+local utils = require( 'utils' )
+
 local StringTemplateGroup = require( 'lst.StringTemplateGroup' )
 local tmpDir = os_getenv('TEMP') or '/tmp'
 local tmpFiles = {}
@@ -185,5 +187,108 @@ initTypeMap ::= [
     local stg = StringTemplateGroup('g4.stg', tmpDir)
 
     assert_not_nil(stg)
+end
+
+function testTrivialTemplateRef()
+    writeGroupFile('g5.stg', [=[
+group g5;
+
+t1() ::= <<
+a <t2()> d
+>>
+
+t2() ::= <<
+b c
+>>
+
+]=])
+    
+    local stg = StringTemplateGroup('g5.stg', tmpDir)
+    local st = stg:getInstanceOf('t1')
+
+    local expected = "a b c d"
+    local result = tostring(st)
+
+    assert_not_nil(stg)
+    assert_equal(expected, result)
+end
+
+function testTemplateRefWithAttrRef()
+    writeGroupFile('g6.stg', [=[
+group g6;
+
+t1() ::= <<
+a <t2()> d
+>>
+
+t2() ::= <<
+b c <foo>
+>>
+
+]=])
+
+    local stg = StringTemplateGroup('g6.stg', tmpDir)
+    local st = stg:getInstanceOf('t1')
+    st.foo = 'z y x'
+
+    local expected = "a b c z y x d"
+    local result = tostring(st)
+
+    assert_not_nil(stg)
+    assert_equal(expected, result)
+end
+
+function testTemplateRefWithAttrRefOptions()
+    writeGroupFile('g6.stg', [=[
+group g6;
+
+t1() ::= <<
+a <t2()> d
+>>
+
+t2() ::= <<
+b c <foo; separator="\n">
+>>
+
+]=])
+
+    local stg = StringTemplateGroup('g6.stg', tmpDir)
+    local st = stg:getInstanceOf('t1')
+    st.foo = { 'z', 'y', 'x' }
+
+    local expected = "a b c z\ny\nx d"
+    local result = tostring(st)
+
+    -- utils.dump_table('stg', stg)
+
+    assert_not_nil(stg)
+    assert_equal(expected, result)
+end
+
+function testTemplateRefWithParams()
+    writeGroupFile('g6.stg', [=[
+group g6;
+
+t1() ::= <<
+a <t2(foo=bar)> d
+>>
+
+t2(foo) ::= <<
+b c <foo; separator="\t">
+>>
+
+]=])
+
+    local stg = StringTemplateGroup('g6.stg', tmpDir)
+    local st = stg:getInstanceOf('t1')
+    st.bar = { 'z', 'y', 'x' }
+
+    local expected = "a b c z\ty\tx d"
+    local result = tostring(st)
+
+    -- utils.dump_table('stg', stg)
+
+    assert_not_nil(stg)
+    assert_equal(expected, result)
 end
 
