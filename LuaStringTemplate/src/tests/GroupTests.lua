@@ -53,7 +53,7 @@ local tmpDir = os_getenv('TEMP') or '/tmp'
 local tmpFiles = {}
 
 local function writeGroupFile(fname, text)
-    local f = lassert(io_open(tmpDir .. '/' .. fname, "w+"))
+    local f = lassert(io_open(tmpDir .. '/' .. fname .. '.stg', "w+"))
     tmpFiles[#tmpFiles + 1] = fname
     f:write(text)
     f:close()
@@ -110,20 +110,20 @@ function testMissingArgConstructor()
 end
 
 function testLoadBasicGroupFile()
-    writeGroupFile("g1.stg", [=[
+    writeGroupFile("g1", [=[
 group g1;
 
 t1() ::= "some text"
 
 ]=])
 
-    local stg = StringTemplateGroup('g1.stg', tmpDir)
+    local stg = StringTemplateGroup('g1', tmpDir)
 
     assert_not_nil(stg)
 end
 
 function testGetInstanceOf()
-    writeGroupFile("g2.stg", [=[
+    writeGroupFile("g2", [=[
 group g2;
 
 t2( a, b, c ) ::= <<
@@ -134,7 +134,7 @@ Some <a>, a <b>, and <c> <\n>
 
 ]=])
 
-    local stg = StringTemplateGroup('g2.stg', tmpDir)
+    local stg = StringTemplateGroup('g2', tmpDir)
     local t2 = stg:getInstanceOf('t2')
 
     t2.a = 'foo'
@@ -151,14 +151,14 @@ Some <a>, a <b>, and <c> <\n>
 end
 
 function testGetInstanceOfMissingTemplate()
-    writeGroupFile('g3.stg', [=[
+    writeGroupFile('g3', [=[
 group g3;
 
 t1() ::= "blah"
 
 ]=])
 
-    local stg = StringTemplateGroup('g3.stg', tmpDir)
+    local stg = StringTemplateGroup('g3', tmpDir)
     local t2 = stg:getInstanceOf('t2')
 
     assert_not_nil(stg)
@@ -171,7 +171,7 @@ end
 --  references implemented in a template.
 --]]
 function testBasicMap()
-    writeGroupFile('g4.stg', [=[
+    writeGroupFile('g4', [=[
 group g4;
 
 initTypeMap ::= [
@@ -184,13 +184,13 @@ initTypeMap ::= [
 
 ]=])
 
-    local stg = StringTemplateGroup('g4.stg', tmpDir)
+    local stg = StringTemplateGroup('g4', tmpDir)
 
     assert_not_nil(stg)
 end
 
 function testTrivialTemplateRef()
-    writeGroupFile('g5.stg', [=[
+    writeGroupFile('g5', [=[
 group g5;
 
 t1() ::= <<
@@ -203,7 +203,7 @@ b c
 
 ]=])
     
-    local stg = StringTemplateGroup('g5.stg', tmpDir)
+    local stg = StringTemplateGroup('g5', tmpDir)
     local st = stg:getInstanceOf('t1')
 
     local expected = "a b c d"
@@ -214,7 +214,7 @@ b c
 end
 
 function testTemplateRefWithAttrRef()
-    writeGroupFile('g6.stg', [=[
+    writeGroupFile('g6', [=[
 group g6;
 
 t1() ::= <<
@@ -227,7 +227,7 @@ b c <foo>
 
 ]=])
 
-    local stg = StringTemplateGroup('g6.stg', tmpDir)
+    local stg = StringTemplateGroup('g6', tmpDir)
     local st = stg:getInstanceOf('t1')
     st.foo = 'z y x'
 
@@ -239,7 +239,7 @@ b c <foo>
 end
 
 function testTemplateRefWithAttrRefOptions()
-    writeGroupFile('g6.stg', [=[
+    writeGroupFile('g6', [=[
 group g6;
 
 t1() ::= <<
@@ -252,7 +252,7 @@ b c <foo; separator="\n">
 
 ]=])
 
-    local stg = StringTemplateGroup('g6.stg', tmpDir)
+    local stg = StringTemplateGroup('g6', tmpDir)
     local st = stg:getInstanceOf('t1')
     st.foo = { 'z', 'y', 'x' }
 
@@ -266,7 +266,7 @@ b c <foo; separator="\n">
 end
 
 function testTemplateRefWithParams()
-    writeGroupFile('g6.stg', [=[
+    writeGroupFile('g6', [=[
 group g6;
 
 t1() ::= <<
@@ -279,7 +279,7 @@ b c <foo; separator="\t">
 
 ]=])
 
-    local stg = StringTemplateGroup('g6.stg', tmpDir)
+    local stg = StringTemplateGroup('g6', tmpDir)
     local st = stg:getInstanceOf('t1')
     st.bar = { 'z', 'y', 'x' }
 
@@ -288,7 +288,67 @@ b c <foo; separator="\t">
 
     -- utils.dump_table('stg', stg)
 
-    assert_not_nil(stg)
+    assert_not_nil(result)
+    assert_equal(expected, result)
+end
+
+function testTemplateRefIndent()
+    writeGroupFile('g7', [=[
+group g7;
+
+t1() ::= <<
+    <t2()> z y x
+>>
+
+t2() ::= <<
+  a
+b
+  c
+>>
+
+]=])
+
+    local stg = StringTemplateGroup('g7', tmpDir)
+    local st = stg:getInstanceOf('t1')
+
+    local expected = "      a\n    b\n      c z y x"
+    local result = tostring(st)
+
+    --utils.dump_table('st', st)
+
+    assert_not_nil(result)
+    assert_equal(expected, result)
+end
+
+function testTemplateRefMultiIndent()
+    writeGroupFile('g8', [=[
+group g8;
+
+t1() ::= <<
+  <t2()>
+>>
+
+t2() ::= <<
+  <t3()>
+baz
+>>
+
+t3() ::= <<
+foo
+bar
+>>
+
+]=])
+
+    local stg = StringTemplateGroup('g8', tmpDir)
+    local st = stg:getInstanceOf('t1')
+
+    local expected = "    foo\n    bar\n  baz"
+    local result = tostring(st)
+
+    --utils.dump_table('st', st)
+
+    assert_not_nil(result)
     assert_equal(expected, result)
 end
 

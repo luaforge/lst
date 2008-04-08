@@ -38,6 +38,8 @@ local setmetatable = setmetatable
 local getmetatable = getmetatable
 local pairs = pairs
 local tostring = tostring
+local print = print
+local assert = assert
 
 module( 'lst.TemplateRefChunk' )
 
@@ -66,26 +68,59 @@ local mt = {
 }
 
 local function eval(self)
-    local et = self:getEnclosingTemplate()
+    local et = assert(self:getEnclosingTemplate(), 
+                        "enclosing template can't be nil")
+
     local stg = et:getEnclosingGroup()
+    if stg == nil then
+        -- This is effectively an error, but not enough to kill the process
+        return ''
+    end
+
     local template = stg:getInstanceOf(self.template)
     local result
 
     if template then
-        local tmt = getmetatable(template)
-        tmt.__index = et
+        -- Setup the template
         
+        local oldParams = {}
         for k,v in pairs(self.params) do
+            oldParams[k] = template[k]
             template[k] = et[v]
         end
 
-        result = tostring(template)
-
-        for k,_ in pairs(self.params) do
-            template[k] = nil
+        local tmt = getmetatable(template)
+        local oldIndex = tmt.__index
+        tmt.__index = et
+        
+        local etIndent = et:createIndentString()
+        if etIndent ~= nil then
+            template:pushIndent(etIndent)
         end
 
-        tmt.__index = nil
+        if self.indentChunk ~= nil then
+            template:pushIndent(self.indentChunk)
+        end
+
+        -- Generate the string
+        
+        result = tostring(template)
+
+        -- Restore the template
+
+        for k,_ in pairs(self.params) do
+            template[k] = oldParams[k]
+        end
+
+        if self.indentChunk then
+            template:popIndent()
+        end
+
+        if etIndent ~= nil then
+            template:popIndent()
+        end
+
+        tmt.__index = oldIndex
     else
         result = ''
     end

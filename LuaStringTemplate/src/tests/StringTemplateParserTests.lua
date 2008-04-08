@@ -47,14 +47,17 @@ module( 'StringTemplateParserTests', lunit.testcase )
 local utils = require( 'utils' )
 
 local assert_table_equal = utils.assert_table_equal
+local dump_table = utils.dump_table
 
+local StringTemplate = require( 'lst.StringTemplate' )
 local STParser = require( 'lst.StringTemplateParser' )
 local LiteralChunk = require( 'lst.LiteralChunk' )
 local NewlineChunk = require( 'lst.NewlineChunk' )
 local AttrRefChunk = require( 'lst.AttrRefChunk' )
 local EscapeChunk = require( 'lst.EscapeChunk' )
 local TemplateRefChunk = require( 'lst.TemplateRefChunk' )
-local parser, t1, t2, t3, nl, a1, e1, tr1, tr2
+local IfChunk = require( 'lst.IfChunk' )
+local parser, t1, t2, t3, nl, a1, e1, tr1, tr2, if1, if2
 
 function setup()
     parser = STParser()
@@ -64,6 +67,8 @@ function setup()
     e1 = EscapeChunk('\n')
     tr1 = TemplateRefChunk('ref1', {})
     tr2 = TemplateRefChunk('ref2', { a = 'z', b = 'y' })
+    if1 = IfChunk('a', '', StringTemplate('text2'))
+    if2 = IfChunk('a', 'b.c', StringTemplate('text2'))
 end
 
 function teardown()
@@ -72,6 +77,7 @@ function teardown()
     nl = nil
     a1 = nil
     tr1, tr2 = nil, nil
+    if1, if2 = nil, nil
 end
 
 function testParseNil()
@@ -131,6 +137,18 @@ end
 function testParseTemplateRefWithParams()
     local expected = { t1, tr2, t2 }
     local result = parser:parse('text1$ref2(a=z, b=y)$text2')
+    assert_table_equal(expected, result)
+end
+
+function testParseIf()
+    local expected = { t1, if1 }
+    local result = parser:parse('text1$if(a)$text2$endif$')
+    assert_table_equal(expected, result)
+end
+
+function testParseIfWithProperty()
+    local expected = { t1, if2 }
+    local result = parser:parse('text1$if(a.b.c)$text2$endif$')
     assert_table_equal(expected, result)
 end
 

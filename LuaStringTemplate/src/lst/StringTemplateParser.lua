@@ -52,8 +52,10 @@ local NewlineChunk = require( 'lst.NewlineChunk' )
 local AttrRefChunk = require( 'lst.AttrRefChunk' )
 local EscapeChunk = require( 'lst.EscapeChunk' )
 local TemplateRefChunk = require( 'lst.TemplateRefChunk' )
+local StringTemplate = require( 'lst.StringTemplate' )
+local IfChunk = require( 'lst.IfChunk' )
 
-local P, S, R, V, C, Cs, Ct = lpeg.P, lpeg.S, lpeg.R, lpeg.V, lpeg.C, lpeg.Cs, lpeg.Ct
+local P, S, R, V, C, Cs, Ct, Carg = lpeg.P, lpeg.S, lpeg.R, lpeg.V, lpeg.C, lpeg.Cs, lpeg.Ct, lpeg.Carg
 
 --
 -- The following functions are used in the grammar, and hence need
@@ -97,6 +99,14 @@ local function newTemplateRef(template, params)
     return TemplateRefChunk(template, actual_params)
 end
 
+local function newIf(attribute, property, templateText, scanner, auto_indent)
+    --print('creating new ifChunk')
+    local opts = { scanner = scanner, auto_indent = auto_indent }
+    local ifBody = StringTemplate(templateText, opts)
+
+    return IfChunk(attribute, property, ifBody)
+end
+
 -- Grammar terminals
 local s = {
     N = R'09',
@@ -120,6 +130,8 @@ local s = {
     EXPR_END_BRACKET = P'>',
     LBRACE = P'(',
     RBRACE = P')',
+    IF = P'if',
+    ENDIF = P'endif'
 }
 
 local literalEscapes = {
@@ -135,7 +147,8 @@ local exprEscapes = {
 }
 
 -- Predeclare the non-terminals
-local Chunk, 
+local Template,
+      Chunk, 
       Newline, 
       Literal, 
       Expr, 
@@ -153,8 +166,10 @@ local Chunk,
       TemplateParamList,
       TemplateParam,
       Name,
-      TemplateRefExpr
+      TemplateRefExpr,
+      IfExpr
       = 
+      V'Template',
       V'Chunk', 
       V'Newline', 
       V'Literal', 
@@ -173,7 +188,8 @@ local Chunk,
       V'TemplateParamList',
       V'TemplateParam',
       V'Name',
-      V'TemplateRefExpr'
+      V'TemplateRefExpr',
+      V'IfExpr'
 
 local grammar = {
     "Template",
@@ -224,9 +240,19 @@ local grammar = {
                         s.RBRACE) / newTemplateRef *
                         ExprEnd,
 
-    Expr = EscapeExpr + CommentExpr + TemplateRefExpr + AttrRefExpr,
+    Expr = IfExpr + EscapeExpr + CommentExpr + TemplateRefExpr + AttrRefExpr,
 
-    Literal = Cs(((LiteralEscape + 1) - (ExprStart + Newline))^1) / newLiteral
+    Literal = Cs(((LiteralEscape + 1) - (ExprStart + Newline))^1) / newLiteral,
+
+    -- Because we are creating an anonymous embedded template, we need to 
+    -- pass in options (scanner and auto_indent) that the template cares about
+    IfExpr = (ExprStart * s.IF * s.LBRACE * 
+                C((1 - (s.PERIOD + s.RBRACE))^1) *
+                ((s.PERIOD * (C((1 - s.RBRACE)^1))) + C(s.EPSILON)) *
+                s.RBRACE * ExprEnd * 
+                s.NEWLINE^0 * C((1 - ExprStart)^0) * s.NEWLINE^0 * 
+                ExprStart * s.ENDIF * ExprEnd *
+                Carg(1) * Carg(2)) / newIf,
 }
 
 --[[
@@ -250,7 +276,7 @@ local parse = function(self, text)
         end
 
         local p = P(grammar)
-        chunks = lpeg.match(p, text)
+        chunks = lpeg.match(p, text, 1, self.scanner, self.auto_indent)
     else
         chunks = {}
     end
@@ -258,11 +284,12 @@ local parse = function(self, text)
     return chunks
 end
 
-function __call(self, scanner_type) 
+function __call(self, scanner_type, auto_indent) 
     local parser = {}
 
     parser.parse = parse
     parser.scanner_type = scanner_type or DOLLAR_SCANNER
+    parser.auto_indent = auto_indent or true
 
     if not (parser.scanner_type == DOLLAR_SCANNER or 
             parser.scanner_type == ANGLE_BRACKET_SCANNER) then

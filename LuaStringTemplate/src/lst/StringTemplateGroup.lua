@@ -81,9 +81,9 @@ local function isA(self, class)
     return _M == class
 end
 
-local function loadGroupFile(self)
+local function loadGroup(self)
     local name, dir, scanner = self.group_name, self.dir, self.scanner
-    local fname = dir .. '/' .. name
+    local fname = dir .. '/' .. name .. '.stg'
 
     local f = assert(io_open(fname, "r"))
     local grpText = f:read('*a')
@@ -105,7 +105,7 @@ local function getInstanceOf(self, templateName)
     local st = nil
 
     if gt then st = gt.st end
-    
+   
     return st
 end
 
@@ -149,7 +149,7 @@ function __call(self, ...)
 
     stg.scanner = stg.scanner or StringTemplate.ANGLE_BRACKET_SCANNER
 
-    loadGroupFile(stg)
+    loadGroup(stg)
 
     stg.getInstanceOf = getInstanceOf
     stg.isA = isA

@@ -61,6 +61,10 @@ local function isA(self, class)
     return _M == class
 end
 
+local function setIndentChunk(self, chunk)
+    self.indentChunk = chunk
+end
+
 function __call(self, text)
     local lc = {}
     setmetatable(lc, mt)
@@ -74,6 +78,7 @@ function __call(self, text)
 
     lc.setEnclosingTemplate = setEnclosingTemplate
     lc.isA = isA
+    lc.setIndentChunk = setIndentChunk
 
     return lc
 end

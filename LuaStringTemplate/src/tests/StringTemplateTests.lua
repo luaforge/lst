@@ -480,3 +480,28 @@ function testNoAutoIndent()
     assert_not_nil(actual)
     assert_equal(expected, actual)
 end
+
+function testIfExpr()
+    local st = StringTemplate('one $if(foo)$two$endif$ three')
+    local expected = 'one two three'
+
+    st.foo = 'I exist!'
+
+    local actual = tostring(st)
+
+    assert_not_nil(actual)
+    assert_equal(expected, actual)
+end
+
+function testIfExprWithAttrRef()
+    local st = StringTemplate('one $if(foo)$ $foo$ $endif$ three')
+    local expected = 'one  two  three'
+
+    st.foo = 'two'
+    
+    local actual = tostring(st)
+
+    assert_not_nil(actual)
+    assert_equal(expected, actual)
+end
+

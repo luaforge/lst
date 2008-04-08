@@ -65,6 +65,10 @@ local function isA(self, class)
     return _M == class
 end
 
+local function setIndentChunk(self, chunk)
+    self.indentChunk = chunk
+end
+
 -- Constructor
 function __call(self, escapeChars)
     local ec = {}
@@ -74,6 +78,7 @@ function __call(self, escapeChars)
     ec.eval = eval
     ec.setEnclosingTemplate = setEnclosingTemplate
     ec.isA = isA
+    ec.setIndentChunk = setIndentChunk
 
     return ec
 end

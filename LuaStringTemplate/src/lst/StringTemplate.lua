@@ -40,18 +40,40 @@ local table_concat = table.concat
 local tostring = tostring
 local error = error
 local print = print
+local assert = assert
 
 module( 'lst.StringTemplate' )
 
 local STParser = require( 'lst.StringTemplateParser' )
 local LiteralChunk = require( 'lst.LiteralChunk' )
 local AttrRefChunk = require( 'lst.AttrRefChunk' )
+local NewlineChunk = require( 'lst.NewlineChunk' )
+
+local function createIndentString(self)
+    local result = {}
+    local indent = nil
+
+    if #self.__indentStack == 0 then
+        return nil
+    end
+
+    for _,indentChunk in ipairs(self.__indentStack) do
+        result[#result + 1] = tostring(indentChunk)
+    end
+    indent = table_concat(result)
+
+    return indent
+end
 
 local function eval(self)
     local result = {}
+    local indent = self:createIndentString()
 
-    for i,chunk in ipairs(self.__chunks) do
-        result[i] = tostring(chunk)
+    for _,chunk in ipairs(self.__chunks) do
+        result[#result + 1] = tostring(chunk)
+        if chunk:isA(NewlineChunk) and indent ~= nil then
+            result[#result + 1] = indent
+        end
     end
 
     return table_concat(result)
@@ -89,21 +111,24 @@ local function isA(self, class)
 end
 
 local function processChunks(chunks, st)
+    local pc = nil
     for i,chunk in ipairs(chunks) do
         chunk:setEnclosingTemplate(st)
 
         --[[
-        --  This really should be part of the parser, but I can't
-        --  think of an elegant way to do it.  Any AttrRefChunk that 
-        --  is preceeded by a LiteralChunk which is all whitespace, should
-        --  have that LiteralChunk passed as its indent.
+        --  This really should be part of the parser, but I can't think of an
+        --  elegant way to do it.  Any chunk that is preceeded by a
+        --  LiteralChunk which is all whitespace, should have that LiteralChunk
+        --  passed as its indent.  Whether it actually does something with it
+        --  is up to the chunk itself.
         --]]
-        if chunk:isA(AttrRefChunk) and i > 1 then
-            local pc = chunks[i-1]
+        if pc then
             if pc:isA(LiteralChunk) and pc.isAllWs then
                 chunk:setIndentChunk(pc)
             end
         end
+
+        pc = chunk
     end
 end
 
@@ -113,6 +138,22 @@ end
 
 local function getEnclosingGroup(self)
     return self.__enclosing_group
+end
+
+local function setEnclosingTemplate(self, template)
+    self.__enclosing_template = template
+end
+
+local function getEnclosingTemplate(self)
+    return self.__enclosing_template
+end
+
+local function pushIndent(self, indentChunk)
+    self.__indentStack[#self.__indentStack + 1] = indentChunk
+end
+
+local function popIndent(self)
+    self.__indentStack[#self.__indentStack] = nil
 end
 
 function __call(self, templateText, options)
@@ -142,11 +183,17 @@ function __call(self, templateText, options)
     st.__chunks = chunks
     st.__auto_indent = auto_indent
     st.__scanner = scanner_type
+    st.__indentStack = {}
 
     st.tostring = st_tostring
     st.getEnclosingGroup = getEnclosingGroup
     st.setEnclosingGroup = setEnclosingGroup
+    st.getEnclosingTemplate = getEnclosingTemplate
+    st.setEnclosingTemplate = setEnclosingTemplate
     st.isA = isA
+    st.pushIndent = pushIndent
+    st.popIndent = popIndent
+    st.createIndentString = createIndentString
 
     return st;
 end

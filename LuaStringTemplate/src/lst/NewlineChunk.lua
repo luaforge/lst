@@ -41,6 +41,8 @@ local setmetatable = setmetatable
 
 module( 'lst.NewlineChunk' )
 
+local nl = {}
+
 local function tostring(chunk)
     return '\n'
 end
@@ -62,12 +64,15 @@ local function isA(self, class)
     return _M == class
 end
 
+local function setIndentChunk(self, chunk)
+    -- ignored
+end
+
 -- This is effectively a Singleton Flyweight
-local nl = { 
-    text = '\n',  
-    setEnclosingTemplate = setEnclosingTemplate,
-    isA = isA
-}
+nl.text = '\n'
+nl.setEnclosingTemplate = setEnclosingTemplate
+nl.isA = isA
+nl.setIndentChunk = setIndentChunk
 setmetatable(nl, mt)
 
 function __call(self)
