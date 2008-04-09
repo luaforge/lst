@@ -332,6 +332,18 @@ function testEvalDoubleIndirectProperty()
     assert_equal(expected, actual)
 end
 
+function testEvalMissingIndirectProperty()
+    local st = StringTemplate('one $foo.(bar)$ three')
+    local expected = 'one  three'
+
+    st.foo = { yadda = 'two' }
+
+    local actual = tostring(st)
+
+    assert_not_nil(actual)
+    assert_equal(expected, actual)
+end
+
 function testABScanner()
     local st = StringTemplate('one <foo> three', 
                                 {
@@ -530,7 +542,6 @@ function testIfExprWithIndirectProperty()
     assert_equal(expected, actual)
 end
 
---[[
 function testIfExprNegated()
     local st = StringTemplate('one $if(!foo)$ $bar$ $endif$ three')
     local expected = 'one  two  three'
@@ -547,11 +558,62 @@ function testIfExprNegatedFailure()
     local st = StringTemplate('one $if(!foo)$ $foo$ $endif$ three')
     local expected = 'one  three'
 
-    st.foo = 'two'
+    st.foo = 'I exist!'
 
     local actual = tostring(st)
 
     assert_not_nil(actual)
     assert_equal(expected, actual)
 end
---]]
+
+function testIfExprWithPropNegated()
+    local st = StringTemplate('one $if(!foo.baz)$ $bar$ $endif$ three')
+    local expected = 'one  two  three'
+
+    st.foo = { yadda = 'yadda' }
+    st.bar = 'two'
+
+    local actual = tostring(st)
+
+    assert_not_nil(actual)
+    assert_equal(expected, actual)
+end
+
+function testIfExprWithPropAndMissingAttrNegated()
+    local st = StringTemplate('one $if(!foo.baz)$ $bar$ $endif$ three')
+    local expected = 'one  two  three'
+
+    st.bar = 'two'
+
+    local actual = tostring(st)
+
+    assert_not_nil(actual)
+    assert_equal(expected, actual)
+end
+
+function testIfExprWithIndirectPropNegated()
+    local st = StringTemplate('one $if(!foo.(bar))$ $bar$ $endif$ three')
+    local expected = 'one  two  three'
+
+    st.foo = { yadda = 'yadda' }
+    st.bar = 'two'
+
+    local actual = tostring(st)
+
+    assert_not_nil(actual)
+    assert_equal(expected, actual)
+end
+
+function testIfExprWithMissingIndirectPropNegated()
+    local st = StringTemplate('one $if(!foo.(baz))$ $bar$ $endif$ three')
+    local expected = 'one  two  three'
+
+    st.foo = { yadda = 'yadda' }
+    st.bar = 'two'
+
+    local actual = tostring(st)
+
+    assert_not_nil(actual)
+    assert_equal(expected, actual)
+end
+

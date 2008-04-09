@@ -82,8 +82,6 @@ local function getRawValue(self, context, attribute, property)
         end
     end
 
-    v = v or ''
-
     return v
 end
 
@@ -99,6 +97,11 @@ local function getField(self)
                                self:getEnclosingTemplate(), 
                                attr,
                                prop)
+
+        if property == nil then
+            -- indirect property lookup failed, fails the expression
+            return self.negate
+        end
     end
 
     local v = getRawValue(self,
@@ -106,7 +109,12 @@ local function getField(self)
                           attribute,
                           property)
 
-    return v ~= nil
+    local result = (v ~= nil)
+    if self.negate then
+        result = not result
+    end 
+
+    return result
 end
 
 local function eval(self)
@@ -152,6 +160,8 @@ local function eval(self)
         else
             result = ''
         end
+    else
+        result = ''
     end
 
     return result
@@ -178,7 +188,13 @@ function __call(self, attribute, property, ifBody)
     local ifc = {}
     setmetatable(ifc, mt)
 
-    ifc.attribute = attribute
+    if string_match(attribute, '!.+') then
+        ifc.attribute = string_gsub(attribute, '!(.+)', '%1')
+        ifc.negate = true
+    else
+        ifc.attribute = attribute
+        ifc.negate = false
+    end
     ifc.property = property
     ifc.ifBody = ifBody
 
