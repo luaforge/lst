@@ -41,6 +41,9 @@ require( 'lunit' )
 
 module( 'StringTemplateTests', lunit.testcase )
 
+local utils = require( 'utils' )
+local dump_table = utils.dump_table
+
 local StringTemplate = require( 'lst.StringTemplate' )
 
 function testNoArgCnstr()
@@ -193,7 +196,7 @@ function testEvalMultiValAttrWithEmptySep()
 end
 
 function testEvalSepWithoutAttr()
-    local ok, errmsg = pcall(StringTemplate, StringTemplate, 'one $;separator=","$ three')
+    local ok, errmsg = pcall(StringTemplate.__call, StringTemplate, 'one $;separator=","$ three')
     assert_false(ok)
 end
 
@@ -616,4 +619,43 @@ function testIfExprWithMissingIndirectPropNegated()
     assert_not_nil(actual)
     assert_equal(expected, actual)
 end
+
+function testNestedIfExpr()
+    local st = StringTemplate('one $if(foo)$$if(bar)$two$endif$$endif$ three')
+    local expected = 'one two three'
+
+    st.foo = 'exists'
+    st.bar = 'exists'
+
+    local actual = tostring(st)
+
+    assert_not_nil(actual)
+    assert_equal(expected, actual)
+end
+
+function testIfExprWhiteSpace1()
+    local st = StringTemplate('one$if(foo)$\n two $endif$ three')
+    local expected = 'one two  three'
+
+    st.foo = 'exists'
+
+    local actual = tostring(st)
+
+    assert_not_nil(actual)
+    assert_equal(expected, actual)
+end
+
+--[[
+function testIfExprWhiteSpace2()
+    local st = StringTemplate('one$if(foo)$ two \n$endif$\n three')
+    local expected = 'one two  three'
+
+    st.foo = 'exists'
+
+    local actual = tostring(st)
+
+    assert_not_nil(actual)
+    assert_equal(expected, actual)
+end
+--]]
 

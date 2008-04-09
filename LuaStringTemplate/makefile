@@ -13,7 +13,7 @@ all: $(LPEG_MODULE)
 check: all 
 	@src/tests/lunit \
 	  --path "src/?.lua;src/tests/?.lua;;;" \
-	  --cpath "$(LPEG_DIR)/?.so;;" \
+	  --cpath "$(LPEG_DIR)/?.so;;" $(LUNIT_ARGS) \
 	  src/tests/Suite.lua
 
 $(LPEG_MODULE):

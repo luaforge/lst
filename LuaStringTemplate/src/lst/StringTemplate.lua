@@ -41,6 +41,7 @@ local tostring = tostring
 local error = error
 local print = print
 local assert = assert
+local type = type
 
 module( 'lst.StringTemplate' )
 
@@ -156,7 +157,7 @@ local function popIndent(self)
     self.__indentStack[#self.__indentStack] = nil
 end
 
-function __call(self, templateText, options)
+function __call(self, templateBody, options)
     local chunks, scanner_type, auto_indent
     local st = {}
     setmetatable(st, mt)
@@ -168,11 +169,18 @@ function __call(self, templateText, options)
         auto_indent = true
     end
 
-    if templateText then
-        local parser = STParser(scanner_type)
-        chunks = parser:parse(templateText)
-        if chunks == nil then
-            error('Failed to parse template', 2)
+    if templateBody then
+        if type(templateBody) == 'string' then
+            local parser = STParser(scanner_type)
+            chunks = parser:parse(templateBody)
+            if chunks == nil then
+                error('Failed to parse template', 2)
+            end
+        elseif type(templateBody) == 'table' then
+            -- assume the body is an already parsed series of chunks
+            chunks = templateBody
+        else
+            error('Bad first argument type: .. ' .. type(templateBody), 2)
         end
 
         processChunks(chunks, st)

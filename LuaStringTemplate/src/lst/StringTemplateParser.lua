@@ -55,7 +55,8 @@ local TemplateRefChunk = require( 'lst.TemplateRefChunk' )
 local StringTemplate = require( 'lst.StringTemplate' )
 local IfChunk = require( 'lst.IfChunk' )
 
-local P, S, R, V, C, Cs, Ct, Carg = lpeg.P, lpeg.S, lpeg.R, lpeg.V, lpeg.C, lpeg.Cs, lpeg.Ct, lpeg.Carg
+local P, S, R, V, C, Cs, Ct, Carg, Cmt, Cb = 
+      lpeg.P, lpeg.S, lpeg.R, lpeg.V, lpeg.C, lpeg.Cs, lpeg.Ct, lpeg.Carg, lpeg.Cmt, lpeg.Cb
 
 --
 -- The following functions are used in the grammar, and hence need
@@ -99,9 +100,21 @@ local function newTemplateRef(template, params)
     return TemplateRefChunk(template, actual_params)
 end
 
-local function newIf(attribute, property, templateText, scanner, auto_indent)
+local function newIf(attribute, property, templateBody, killNewline, scanner, auto_indent)
+    --[[
+    print('a:', attribute, 
+            'p:', property,
+            'k:', killNewline,
+            's:', scanner,
+            'ai:', auto_indent)
+    --]]
+
     local opts = { scanner = scanner, auto_indent = auto_indent }
-    local ifBody = StringTemplate(templateText, opts)
+    if killNewline == 'kill' then
+        -- need to strip the last NewlineChunk from the template body
+        templateBody[#templateBody] = nil
+    end
+    local ifBody = StringTemplate(templateBody, opts)
 
     return IfChunk(attribute, property, ifBody)
 end
@@ -147,6 +160,7 @@ local exprEscapes = {
 
 -- Predeclare the non-terminals
 local Template,
+      TemplateBody,
       Chunk, 
       Newline, 
       Literal, 
@@ -168,9 +182,11 @@ local Template,
       TemplateRefExpr,
       IfExpr,
       IfExprAttr,
-      IfExprProp
+      IfExprProp,
+      EndifExpr
       = 
       V'Template',
+      V'TemplateBody',
       V'Chunk', 
       V'Newline', 
       V'Literal', 
@@ -192,20 +208,27 @@ local Template,
       V'TemplateRefExpr',
       V'IfExpr',
       V'IfExprAttr',
-      V'IfExprProp'
+      V'IfExprProp',
+      V'EndifExpr'
 
 local grammar = {
     "Template",
 
-    Template = Ct(Chunk^1) * -1,
+    Template = TemplateBody * -1,
 
-    Chunk = Literal + Expr + Newline,
+    TemplateBody = Ct(Chunk^1),
+
+    Chunk = Newline + Literal + Expr,
+
+    Expr = -EndifExpr * (EscapeExpr + CommentExpr + IfExpr + TemplateRefExpr + AttrRefExpr),
 
     Newline = C(s.NEWLINE) / newNewline,
 
+    Literal = Cs(((LiteralEscape + 1) - (ExprStart + Newline))^1) / newLiteral,
+
     LiteralEscape = (s.ESCAPE * S'$<') / literalEscapes,
 
-    AttrRef = -(s.BANG + s.ESCAPE) * C((1 - (ExprEnd + s.SEMI + s.PERIOD))^1),
+    AttrRef =  C((1 - (ExprEnd + s.SEMI + s.PERIOD))^1),
 
     AttrProp = (s.PERIOD * C((1 - (ExprEnd + s.SEMI))^1)) +
                C(s.EPSILON),
@@ -243,17 +266,26 @@ local grammar = {
                         s.RBRACE) / newTemplateRef *
                         ExprEnd,
 
-    Expr = IfExpr + EscapeExpr + CommentExpr + TemplateRefExpr + AttrRefExpr,
-
-    Literal = Cs(((LiteralEscape + 1) - (ExprStart + Newline))^1) / newLiteral,
+    EndifExpr = Cmt(Cb(1) * ExprStart * s.ENDIF * ExprEnd * s.NEWLINE, 
+                    function(s,i,a) 
+                        if a.isA then
+                            if a:isA(NewlineChunk) then
+                                return i, "kill"
+                            else
+                                return false
+                            end
+                        else
+                            return false
+                        end
+                    end) +
+                Cs((ExprStart * C(s.ENDIF) * ExprEnd) / "dontkill"),
 
     -- Because we are creating an anonymous embedded template, we need to 
     -- pass in options (scanner and auto_indent) that the template cares about
-    IfExpr = ExprStart * s.WS^0 * s.IF * s.WS^0 * s.LBRACE * s.WS^0 * 
-                IfExprAttr * IfExprProp *
-                s.RBRACE * ExprEnd * 
-                s.NEWLINE^0 * C((1 - (ExprStart * s.ENDIF))^0) * s.NEWLINE^0 * 
-                ExprStart * s.ENDIF * ExprEnd *
+    IfExpr = ExprStart * s.IF * s.LBRACE * IfExprAttr * IfExprProp * s.RBRACE * ExprEnd * 
+                --s.NEWLINE^0 * C((1 - (ExprStart * s.ENDIF))^0) * s.NEWLINE^0 * 
+                s.NEWLINE^0 * Ct(Chunk^1) * 
+                EndifExpr * 
                 Carg(1) * Carg(2) / newIf,
 
     IfExprAttr = C((1 - (s.PERIOD + s.RBRACE + ExprEnd))^1),

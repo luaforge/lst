@@ -152,3 +152,10 @@ function testParseIfWithProperty()
     assert_table_equal(expected, result)
 end
 
+function testParseNestedIf()
+    local if3 = IfChunk('a', '', StringTemplate('$if(b)$text2$endif$'))
+    local expected = { t1, if3 }
+    local result = parser:parse('text1$if(a)$$if(b)$text2$endif$$endif$')
+    assert_table_equal(expected, result)
+end
+
