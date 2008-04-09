@@ -100,7 +100,6 @@ local function newTemplateRef(template, params)
 end
 
 local function newIf(attribute, property, templateText, scanner, auto_indent)
-    --print('creating new ifChunk')
     local opts = { scanner = scanner, auto_indent = auto_indent }
     local ifBody = StringTemplate(templateText, opts)
 
@@ -167,7 +166,9 @@ local Template,
       TemplateParam,
       Name,
       TemplateRefExpr,
-      IfExpr
+      IfExpr,
+      IfExprAttr,
+      IfExprProp
       = 
       V'Template',
       V'Chunk', 
@@ -189,7 +190,9 @@ local Template,
       V'TemplateParam',
       V'Name',
       V'TemplateRefExpr',
-      V'IfExpr'
+      V'IfExpr',
+      V'IfExprAttr',
+      V'IfExprProp'
 
 local grammar = {
     "Template",
@@ -246,13 +249,21 @@ local grammar = {
 
     -- Because we are creating an anonymous embedded template, we need to 
     -- pass in options (scanner and auto_indent) that the template cares about
-    IfExpr = (ExprStart * s.IF * s.LBRACE * 
-                C((1 - (s.PERIOD + s.RBRACE))^1) *
-                ((s.PERIOD * (C((1 - s.RBRACE)^1))) + C(s.EPSILON)) *
+    IfExpr = ExprStart * s.WS^0 * s.IF * s.WS^0 * s.LBRACE * s.WS^0 * 
+                IfExprAttr * IfExprProp *
                 s.RBRACE * ExprEnd * 
-                s.NEWLINE^0 * C((1 - ExprStart)^0) * s.NEWLINE^0 * 
+                s.NEWLINE^0 * C((1 - (ExprStart * s.ENDIF))^0) * s.NEWLINE^0 * 
                 ExprStart * s.ENDIF * ExprEnd *
-                Carg(1) * Carg(2)) / newIf,
+                Carg(1) * Carg(2) / newIf,
+
+    IfExprAttr = C((1 - (s.PERIOD + s.RBRACE + ExprEnd))^1),
+
+    -- This one is tricky, as we need to deal with indirect property
+    -- references, which are ofset by braces, which also happen to delimit the
+    -- attribute/property of the if expression.
+    IfExprProp = (s.PERIOD * C(s.LBRACE * (1 - (ExprEnd + s.RBRACE))^1 * s.RBRACE)) + 
+                 (s.PERIOD * C((1 - (ExprEnd + s.RBRACE))^1)) +
+                 C(s.EPSILON),
 }
 
 --[[

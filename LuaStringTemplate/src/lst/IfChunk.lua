@@ -114,9 +114,7 @@ local function eval(self)
     local result
 
     if foundIt then
-        -- print('found attribute...')
         if self.ifBody then
-            -- print('found attribute and have ifBody')
             local et = assert(self:getEnclosingTemplate(), 
             "enclosing template can't be nil")
 
