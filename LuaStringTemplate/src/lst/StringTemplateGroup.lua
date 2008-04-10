@@ -53,6 +53,40 @@ local GroupTemplate = require( 'lst.GroupTemplate' )
 local GroupMap = require( 'lst.GroupMap' )
 
 local function eq(stg1, stg2)
+    if stg1.group_name ~= stg2.group_name then
+        return false
+    end
+
+    if stg1.dir ~= stg2.dir then
+        return false
+    end
+
+    if stg1.scanner ~= stg2.scanner then
+        return false
+    end
+
+    if stg1.templates and stg2.templates then
+        for k,t1 in pairs(stg1.templates) do
+            local t2 = stg2[k]
+            if t1 ~= t2 then
+                return false
+            end
+        end
+    else
+        return false
+    end
+
+    if stg.maps and stg2.maps then
+        for k,m1 in pairs(stg1.maps) do
+            local m2 = stg2[k]
+            if m1 ~= m2 then
+                return false
+            end
+        end
+    else
+        return false
+    end
+
     return true
 end
 

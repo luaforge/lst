@@ -175,7 +175,7 @@ local grammar = {
 
     InterfaceName = C((1 - (s.WS + s.SEMI + s.COMMA))^1),
 
-    GroupElements = Ct(((GroupTmpl + GroupMap) * s.WS^0)^1) + C(s.EPSILON),
+    GroupElements = Ct(((GroupMap + GroupTmpl) * s.WS^0)^1) + C(s.EPSILON),
 
     GroupTmpl = (C((1 - s.LPAREN)^1) * 
                         s.LPAREN * s.WS^0 * ParamList * s.WS^0 * s.RPAREN *

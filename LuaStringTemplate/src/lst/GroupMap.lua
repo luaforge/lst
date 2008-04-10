@@ -42,14 +42,14 @@ local pairs = pairs
 module( 'lst.GroupMap' )
 
 local function eq(gm1, gm2)
-    if gm1._name ~= gm2._name then
+    if gm1.name ~= gm2.name then
         return false
     end
 
-    for k,v in pairs(gm1) do
-        if k ~= '_name' then
+    for k,v1 in pairs(gm1) do
+        if k ~= 'name' then
             v2 = gm2[k]
-            if v ~= v2 then
+            if v1 ~= v2 then
                 return false
             end
         end

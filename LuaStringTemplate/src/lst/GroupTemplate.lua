@@ -42,16 +42,24 @@ local print = print
 module( 'lst.GroupTemplate' )
 
 local function eq(gt1, gt2)
-    if gt1.name == gt2.name and gt1.st == gt2.st then
-        for i,v in ipairs(gt1.arguments) do
-            if gt1.arguments[i] ~= gt2.arguments[i] then
+    if gt1.name ~= gt2.name then
+        return false
+    end
+
+    if gt1.arguments and gt2.argements then
+        for i,v1 in ipairs(gt1.arguments) do
+            local v2 = gt2.arguments[i]
+            if v1 ~= v2 then
                 return false
             end
         end
-        return true
-    else
-        return false
     end
+
+    if gt1.st ~= gt2.st then
+        return false 
+    end
+
+    return true
 end
 
 local mt = {

@@ -69,12 +69,11 @@ function assert_table_equal(expected, actual, debug, depth)
 
     for k,v in pairs(expected) do
         local v2 = actual[k]
-        local eq = tostring(v == v2)
         local leader = string.rep('-', depth)
         local leader = leader .. '>'
 
         if debug then 
-            print(leader .. ' k:', k, ' v:', v, 'v2:', v2, 'eq:', eq) 
+            print(leader .. ' k:', k, ' v:', v, 'v2:', v2)
         end
         if type(v) == 'table' and type(v2) == 'table' then
             --[[

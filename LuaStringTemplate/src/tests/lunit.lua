@@ -191,7 +191,7 @@ traceback_hide( assert_false )
 function assert_equal(expected, actual, msg)
   stats.assertions = stats.assertions + 1
   if expected ~= actual then
-    failure( "assert_equal", msg, "expected '%s' but was '%s'", expected, actual )
+    failure( "assert_equal", msg, "expected '%s' but was '%s'", tostring(expected), tostring(actual) )
   end
   return actual
 end

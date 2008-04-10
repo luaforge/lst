@@ -47,6 +47,7 @@ require( 'lunit' )
 module( 'GroupTests', lunit.testcase )
 
 local utils = require( 'utils' )
+local dump_table = utils.dump_table
 
 local StringTemplateGroup = require( 'lst.StringTemplateGroup' )
 local tmpDir = os_getenv('TEMP') or '/tmp'
@@ -189,6 +190,40 @@ initTypeMap ::= [
     assert_not_nil(stg)
 end
 
+--[[
+function testMapReference()
+    writeGroupFile('g4a', [=[
+group g4a;
+
+mapA ::= [
+  "a" : "<foo>",
+  "b" : "<bar>",
+  "c" : "d"
+]
+
+t1() ::= <<
+  <mapA.a>
+  <mapA.b>
+  <mapA.c>
+>>
+
+]=])
+
+    local stg = StringTemplateGroup('g4a', tmpDir)
+    local st = stg:getInstanceOf('t1')
+
+    dump_table('st', st)
+
+    st.foo = 'yadda'
+    st.bar = 'fred'
+
+    local expected = '  yadda\n  fred\n  d'
+    local result = tostring(st)
+
+    assert_equal(expected, result)
+end
+--]]
+
 function testTrivialTemplateRef()
     writeGroupFile('g5', [=[
 group g5;
@@ -239,7 +274,7 @@ b c <foo>
 end
 
 function testTemplateRefWithAttrRefOptions()
-    writeGroupFile('g6', [=[
+    writeGroupFile('g7', [=[
 group g6;
 
 t1() ::= <<
@@ -252,7 +287,7 @@ b c <foo; separator="\n">
 
 ]=])
 
-    local stg = StringTemplateGroup('g6', tmpDir)
+    local stg = StringTemplateGroup('g7', tmpDir)
     local st = stg:getInstanceOf('t1')
     st.foo = { 'z', 'y', 'x' }
 
@@ -266,7 +301,7 @@ b c <foo; separator="\n">
 end
 
 function testTemplateRefWithParams()
-    writeGroupFile('g6', [=[
+    writeGroupFile('g8', [=[
 group g6;
 
 t1() ::= <<
@@ -279,7 +314,7 @@ b c <foo; separator="\t">
 
 ]=])
 
-    local stg = StringTemplateGroup('g6', tmpDir)
+    local stg = StringTemplateGroup('g8', tmpDir)
     local st = stg:getInstanceOf('t1')
     st.bar = { 'z', 'y', 'x' }
 
@@ -293,7 +328,7 @@ b c <foo; separator="\t">
 end
 
 function testTemplateRefIndent()
-    writeGroupFile('g7', [=[
+    writeGroupFile('g9', [=[
 group g7;
 
 t1() ::= <<
@@ -308,7 +343,7 @@ b
 
 ]=])
 
-    local stg = StringTemplateGroup('g7', tmpDir)
+    local stg = StringTemplateGroup('g9', tmpDir)
     local st = stg:getInstanceOf('t1')
 
     local expected = "      a\n    b\n      c z y x"
@@ -321,7 +356,7 @@ b
 end
 
 function testTemplateRefMultiIndent()
-    writeGroupFile('g8', [=[
+    writeGroupFile('g10', [=[
 group g8;
 
 t1() ::= <<
@@ -340,7 +375,7 @@ bar
 
 ]=])
 
-    local stg = StringTemplateGroup('g8', tmpDir)
+    local stg = StringTemplateGroup('g10', tmpDir)
     local st = stg:getInstanceOf('t1')
 
     local expected = "    foo\n    bar\n  baz"

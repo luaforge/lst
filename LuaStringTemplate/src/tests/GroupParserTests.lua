@@ -54,6 +54,7 @@ local GroupMap = require( 'lst.GroupMap' )
 
 local utils = require( 'utils' )
 local assert_table_equal = utils.assert_table_equal
+local dump_table = utils.dump_table
 
 local stOpts = { scanner = StringTemplate.ANGLE_BRACKET_SCANNER }
 local parser
@@ -272,6 +273,40 @@ typeInitMap ::= [
 
    local expected = { gmd, { m1 } }
 
+   -- dump_table('r', result)
+
    assert_table(result)
    assert_table_equal(expected, result)
+end
+
+function testMapAndTemplate()
+    local result = parser:parse([=[
+group foo;
+
+mapA ::= [
+    "a" : "<foo>",
+    "b" : "<bar>",
+    "c" : "d"
+]
+
+t1() ::= <<
+    foo
+>>
+
+]=])
+
+    local gmd = GroupMetaData('foo', '', {})
+    local m1 = GroupMap('mapA',
+                        {
+                            { 'a', StringTemplate('<foo>', stOpts) },
+                            { 'b', StringTemplate('<bar>', stOpts) },
+                            { 'c', StringTemplate('d', stOpts) }
+                        }
+                       )
+    local t1 = GroupTemplate('t1', {}, StringTemplate('    foo', stOpts))
+
+    local expected = { gmd, { m1, t1 } }
+
+    assert_table(result)
+    assert_table_equal(expected, result)
 end

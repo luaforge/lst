@@ -36,6 +36,7 @@
 local module = module
 local require = require
 local setmetatable = setmetatable
+local getmetatable = getmetatable
 local tostring = tostring
 local string_gmatch = string.gmatch
 local string_match = string.match
@@ -68,7 +69,7 @@ local function getRawValue(self, context, attribute, property)
         end
     end
 
-    v = v or ''
+    --v = v or ''
 
     return v
 end
@@ -87,15 +88,64 @@ local function getField(self)
                                prop)
     end
 
-    local v = getRawValue(self,
-                          self.enclosingTemplate,
-                          attribute,
-                          property)
+    local v = getRawValue(self, self.enclosingTemplate, attribute, property)
+
+--[[
+    if v == nil then
+        -- is there a map that we can use?
+        -- print('looking for map ' .. attribute .. ' in enclosing group')
+
+        local et = self.enclosingTemplate
+        local stg = et:getEnclosingGroup()
+        if stg then
+            local map = stg.maps[attribute]
+
+            if map then
+                -- print('found map, looking for key ' .. property)
+                local template = map[property]
+                if template then
+                    -- print('found template, render it')
+                    template:setEnclosingTemplate(et)
+
+                    local tmt = getmetatable(template)
+                    local oldIndex = tmt.__index
+                    tmt.__index = et
+
+                    local etIndent = et:createIndentString()
+                    if etIndent ~= nil then
+                        template:pushIndent(etIndent)
+                    end
+
+                    if self.indentChunk ~= nil then
+                        template:pushIndent(self.indentChunk)
+                    end
+
+                    v = tostring(template)
+                    --print('v = \'' .. v .. '\'')
+
+                    if self.indentChunk then
+                        template:popIndent()
+                    end
+
+                    if etIndent then
+                        template:popIndent()
+                    end
+
+                    tmt.__indent = oldIndex
+                    template:setEnclosingTemplate(nil)
+                end
+            end
+        end
+    end
+--]]
 
     v = v or ''
+
     local sep = self.options['separator'] or ''
-    if self.indentChunk and self.enclosingTemplate.__auto_indent then
-        sep = sep .. self.indentChunk.text
+    if self.indentChunk then
+        if self.enclosingTemplate.__auto_indent then
+            sep = sep .. self.indentChunk.text
+        end
     end
 
     if type(v) == "table" then
