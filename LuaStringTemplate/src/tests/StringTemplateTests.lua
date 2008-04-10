@@ -645,7 +645,6 @@ function testIfExprWhiteSpace1()
     assert_equal(expected, actual)
 end
 
---[[
 function testIfExprWhiteSpace2()
     local st = StringTemplate('one$if(foo)$ two \n$endif$\n three')
     local expected = 'one two  three'
@@ -657,5 +656,5 @@ function testIfExprWhiteSpace2()
     assert_not_nil(actual)
     assert_equal(expected, actual)
 end
---]]
+
 

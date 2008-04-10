@@ -266,16 +266,23 @@ local grammar = {
                         s.RBRACE) / newTemplateRef *
                         ExprEnd,
 
+    -- We need to deal with StringTemplate's nifty way of killing newlines.
+    -- Since the preceeding newline is almost always grabbed by a Chunk, we
+    -- need to explicitly look at the preceeding capture and check whether it
+    -- needs to be killed.  However, because of the -EndifExpr element in the
+    -- Expr rule, which has to be there or the $endif$ gets interpreted as an
+    -- AttrRefExpr, we need to cope with that case in the second 'return i, "kill"'.
+    -- Honestly, I'm not 100% sure why it works, but it does.
     EndifExpr = Cmt(Cb(1) * ExprStart * s.ENDIF * ExprEnd * s.NEWLINE, 
                     function(s,i,a) 
                         if a.isA then
                             if a:isA(NewlineChunk) then
                                 return i, "kill"
                             else
-                                return false
+                                return i, "dontkill"
                             end
                         else
-                            return false
+                            return i, "kill"
                         end
                     end) +
                 Cs((ExprStart * C(s.ENDIF) * ExprEnd) / "dontkill"),
