@@ -49,14 +49,13 @@ local utils = require( 'utils' )
 local assert_table_equal = utils.assert_table_equal
 local dump_table = utils.dump_table
 
-local StringTemplate = require( 'lst.StringTemplate' )
+local AttrRefChunk = require( 'lst.AttrRefChunk' )
 local STParser = require( 'lst.StringTemplateParser' )
 local LiteralChunk = require( 'lst.LiteralChunk' )
 local NewlineChunk = require( 'lst.NewlineChunk' )
-local AttrRefChunk = require( 'lst.AttrRefChunk' )
-local EscapeChunk = require( 'lst.EscapeChunk' )
-local TemplateRefChunk = require( 'lst.TemplateRefChunk' )
 local IfChunk = require( 'lst.IfChunk' )
+local TemplateRefChunk = require( 'lst.TemplateRefChunk' )
+local EscapeChunk = require( 'lst.EscapeChunk' )
 local parser, t1, t2, t3, nl, a1, e1, tr1, tr2, if1, if2
 
 function setup()
@@ -67,8 +66,8 @@ function setup()
     e1 = EscapeChunk('\n')
     tr1 = TemplateRefChunk('ref1', {})
     tr2 = TemplateRefChunk('ref2', { a = 'z', b = 'y' })
-    if1 = IfChunk('a', '', StringTemplate('text2'))
-    if2 = IfChunk('a', 'b.c', StringTemplate('text2'))
+    if1 = IfChunk('a', '', { LiteralChunk('text2') })
+    if2 = IfChunk('a', 'b.c', { LiteralChunk('text2') })
 end
 
 function teardown()
@@ -153,8 +152,9 @@ function testParseIfWithProperty()
 end
 
 function testParseNestedIf()
-    local if3 = IfChunk('a', '', StringTemplate('$if(b)$text2$endif$'))
-    local expected = { t1, if3 }
+    local ifb = IfChunk('b', '', { LiteralChunk('text2') } )
+    local ifa = IfChunk('a', '', { ifb } )
+    local expected = { t1, ifa }
     local result = parser:parse('text1$if(a)$$if(b)$text2$endif$$endif$')
     assert_table_equal(expected, result)
 end

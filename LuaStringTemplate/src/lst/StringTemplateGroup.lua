@@ -48,7 +48,6 @@ local type = type
 module( 'lst.StringTemplateGroup' )
 
 local STGParser = require( 'lst.StringTemplateGroupParser' )
-local StringTemplate = require( 'lst.StringTemplate' )
 local GroupTemplate = require( 'lst.GroupTemplate' )
 local GroupMap = require( 'lst.GroupMap' )
 
@@ -168,7 +167,7 @@ function __call(self, ...)
         stg.group_name = name
         stg.dir = dir
     elseif select('#', ...) == 1 and type(select(1, ...)) == 'table' then
-        local args = select(1,...)
+        local args = {select(1,...)}
 
         stg.group_name = args.name
         stg.dir = args.dir
@@ -181,7 +180,9 @@ function __call(self, ...)
         error('Need group name and root directory', 2)
     end
 
-    stg.scanner = stg.scanner or StringTemplate.ANGLE_BRACKET_SCANNER
+    stg.scanner = stg.scanner or STGParser.ANGLE_BRACKET_SCANNER
+
+    assert(stg.scanner ~= nil)
 
     loadGroup(stg)
 

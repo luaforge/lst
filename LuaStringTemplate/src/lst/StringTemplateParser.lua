@@ -52,7 +52,7 @@ local NewlineChunk = require( 'lst.NewlineChunk' )
 local AttrRefChunk = require( 'lst.AttrRefChunk' )
 local EscapeChunk = require( 'lst.EscapeChunk' )
 local TemplateRefChunk = require( 'lst.TemplateRefChunk' )
-local StringTemplate = require( 'lst.StringTemplate' )
+--local StringTemplate = require( 'lst.StringTemplate' )
 local IfChunk = require( 'lst.IfChunk' )
 
 local P, S, R, V, C, Cs, Ct, Carg, Cmt, Cb = 
@@ -114,9 +114,8 @@ local function newIf(attribute, property, templateBody, killNewline, scanner, au
         -- need to strip the last NewlineChunk from the template body
         templateBody[#templateBody] = nil
     end
-    local ifBody = StringTemplate(templateBody, opts)
 
-    return IfChunk(attribute, property, ifBody)
+    return IfChunk(attribute, property, templateBody)
 end
 
 -- Grammar terminals

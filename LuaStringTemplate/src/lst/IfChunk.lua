@@ -41,8 +41,8 @@ local string_gmatch = string.gmatch
 local string_match = string.match
 local string_gsub = string.gsub
 local print = print
-local pairs = pairs
-local error = error
+local ipairs = ipairs
+local table_concat = table.concat
 local assert = assert
 
 module( 'lst.IfChunk' )
@@ -60,8 +60,11 @@ local function eq(chunk1, chunk2)
         return false
     end
 
-    if chunk1.ifBody ~= chunk2.ifBody then
-        return false
+    for i,c1 in ipairs(chunk1.ifBodyChunks) do
+        c2 = chunk2.ifBodyChunks[i]
+        if c1 ~= c2 then
+            return false
+        end
     end
 
     return true
@@ -88,6 +91,7 @@ end
 local function getField(self)
     local attribute = self.attribute
     local property = self.property
+    local et = self:getEnclosingTemplate()
 
     if string_match(property, '%(.+%)') then
         -- indirect property lookup
@@ -122,41 +126,22 @@ local function eval(self)
     local result
 
     if foundIt then
-        if self.ifBody then
-            local et = assert(self:getEnclosingTemplate(), 
-            "enclosing template can't be nil")
-
-            local template = self.ifBody
-
-            -- Setup the template
-            local tmt = getmetatable(template)
-            local oldIndex = tmt.__index
-            tmt.__index = et
-
-            local etIndent = et:createIndentString()
-            if etIndent ~= nil then
-                template:pushIndent(etIndent)
-            end
-
-            if self.indentChunk ~= nil then
-                template:pushIndent(self.indentChunk)
-            end
-
-            -- Generate the string
-
-            result = tostring(template)
-
-            -- Restore the template
+        if self.ifBodyChunks then
+            local strings = {}
+            local indent
 
             if self.indentChunk then
-                template:popIndent()
+                indent = tostring(self.indentChunk)
             end
 
-            if etIndent ~= nil then
-                template:popIndent()
+            for _,chunk in ipairs(self.ifBodyChunks) do
+                strings[#strings + 1] = tostring(chunk)
+                if chunk:isA(NewlineChunk) and indent ~= nil then
+                    strings[#strings + 1] = indent
+                end
             end
 
-            tmt.__index = oldIndex
+            result = table_concat(strings)
         else
             result = ''
         end
@@ -173,7 +158,12 @@ end
 
 local function setEnclosingTemplate(self, template)
     self.enclosingTemplate = template
-    self.ifBody:setEnclosingTemplate(template)
+
+    if self.ifBodyChunks then
+        for _,c in ipairs(self.ifBodyChunks) do
+            c:setEnclosingTemplate(template)
+        end
+    end
 end
 
 local function getEnclosingTemplate(self)
@@ -184,7 +174,7 @@ local function setIndentChunk(self, chunk)
     self.indentChunk = chunk
 end
 
-function __call(self, attribute, property, ifBody)
+function __call(self, attribute, property, ifBodyChunks)
     local ifc = {}
     setmetatable(ifc, mt)
 
@@ -196,7 +186,7 @@ function __call(self, attribute, property, ifBody)
         ifc.negate = false
     end
     ifc.property = property
-    ifc.ifBody = ifBody
+    ifc.ifBodyChunks = ifBodyChunks
 
     ifc.eval = eval
     ifc.setEnclosingTemplate = setEnclosingTemplate

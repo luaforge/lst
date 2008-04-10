@@ -49,6 +49,7 @@ module( 'GroupTests', lunit.testcase )
 local utils = require( 'utils' )
 local dump_table = utils.dump_table
 
+--local StringTemplate = require('lst.StringTemplate')
 local StringTemplateGroup = require( 'lst.StringTemplateGroup' )
 local tmpDir = os_getenv('TEMP') or '/tmp'
 local tmpFiles = {}
