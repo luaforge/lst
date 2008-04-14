@@ -54,11 +54,11 @@ local function createIndentString(self)
     local result = {}
     local indent = nil
 
-    if #self.__indentStack == 0 then
+    if #self._indentStack == 0 then
         return nil
     end
 
-    for _,indentChunk in ipairs(self.__indentStack) do
+    for _,indentChunk in ipairs(self._indentStack) do
         result[#result + 1] = tostring(indentChunk)
     end
     indent = table_concat(result)
@@ -68,11 +68,11 @@ end
 
 local function eval(self)
     local result = {}
-    local indent = self:createIndentString()
+    local indent = self:_createIndentString()
 
-    for _,chunk in ipairs(self.__chunks) do
+    for _,chunk in ipairs(self._chunks) do
         result[#result + 1] = tostring(chunk)
-        if chunk:isA(NewlineChunk) and indent ~= nil then
+        if chunk:_isA(NewlineChunk) and indent ~= nil then
             result[#result + 1] = indent
         end
     end
@@ -85,27 +85,22 @@ local function st_tostring(self)
 end
 
 local function eq(st1, st2)
-    if st1.__auto_indent ~= st2.__auto_indent then
+    if st1._autoIndent ~= st2._autoIndent then
         return false
     end
 
-    if st1.__scanner ~= st2.__scanner then
+    if st1._scanner ~= st2._scanner then
         return false
     end
 
-    for i,v in ipairs(st1.__chunks) do
-        if v ~= st2.__chunks[i] then
+    for i,v in ipairs(st1._chunks) do
+        if v ~= st2._chunks[i] then
             return false
         end
     end
 
     return true
 end
-
-local mt = {
-    __tostring = st_tostring,
-    __eq = eq,
-}
 
 local function isA(self, class)
     return _M == class
@@ -124,7 +119,7 @@ local function processChunks(chunks, st)
         --  is up to the chunk itself.
         --]]
         if pc then
-            if pc:isA(LiteralChunk) and pc.isAllWs then
+            if pc:_isA(LiteralChunk) and pc.isAllWs then
                 chunk:setIndentChunk(pc)
             end
         end
@@ -150,28 +145,28 @@ local function getEnclosingTemplate(self)
 end
 
 local function pushIndent(self, indentChunk)
-    self.__indentStack[#self.__indentStack + 1] = indentChunk
+    self._indentStack[#self._indentStack + 1] = indentChunk
 end
 
 local function popIndent(self)
-    self.__indentStack[#self.__indentStack] = nil
+    self._indentStack[#self._indentStack] = nil
 end
 
 function __call(self, templateBody, options)
-    local chunks, scanner_type, auto_indent
-    local st = {}
-    setmetatable(st, mt)
+    local chunks, scannerType, autoIndent
+    local st = setmetatable({}, { __tostring = st_tostring,
+                                  __eq = eq })
 
     if options then
-        scanner_type = options.scanner
-        auto_indent = options.auto_indent 
+        scannerType = options.scanner
+        autoIndent = options.autoIndent 
     else
-        auto_indent = true
+        autoIndent = true
     end
 
     if templateBody then
         if type(templateBody) == 'string' then
-            local parser = STParser(scanner_type)
+            local parser = STParser(scannerType)
             chunks = parser:parse(templateBody)
             if chunks == nil then
                 error('Failed to parse template', 2)
@@ -188,20 +183,20 @@ function __call(self, templateBody, options)
         chunks = nil
     end
 
-    st.__chunks = chunks
-    st.__auto_indent = auto_indent
-    st.__scanner = scanner_type
-    st.__indentStack = {}
+    st._chunks = chunks
+    st._autoIndent = autoIndent
+    st._scanner = scannerType
+    st._indentStack = {}
 
     st.tostring = st_tostring
-    st.getEnclosingGroup = getEnclosingGroup
-    st.setEnclosingGroup = setEnclosingGroup
-    st.getEnclosingTemplate = getEnclosingTemplate
-    st.setEnclosingTemplate = setEnclosingTemplate
-    st.isA = isA
-    st.pushIndent = pushIndent
-    st.popIndent = popIndent
-    st.createIndentString = createIndentString
+    st._getEnclosingGroup = getEnclosingGroup
+    st._setEnclosingGroup = setEnclosingGroup
+    st._getEnclosingTemplate = getEnclosingTemplate
+    st._setEnclosingTemplate = setEnclosingTemplate
+    st._isA = isA
+    st._pushIndent = pushIndent
+    st._popIndent = popIndent
+    st._createIndentString = createIndentString
 
     return st;
 end

@@ -100,16 +100,16 @@ local function newTemplateRef(template, params)
     return TemplateRefChunk(template, actual_params)
 end
 
-local function newIf(attribute, property, templateBody, killNewline, scanner, auto_indent)
+local function newIf(attribute, property, templateBody, killNewline, scanner, autoIndent)
     --[[
     print('a:', attribute, 
             'p:', property,
             'k:', killNewline,
             's:', scanner,
-            'ai:', auto_indent)
+            'ai:', autoIndent)
     --]]
 
-    local opts = { scanner = scanner, auto_indent = auto_indent }
+    local opts = { scanner = scanner, autoIndent = autoIndent }
     if killNewline == 'kill' then
         -- need to strip the last NewlineChunk from the template body
         templateBody[#templateBody] = nil
@@ -275,7 +275,7 @@ local grammar = {
     EndifExpr = Cmt(Cb(1) * ExprStart * s.ENDIF * ExprEnd * s.NEWLINE, 
                     function(s,i,a) 
                         if a.isA then
-                            if a:isA(NewlineChunk) then
+                            if a:_isA(NewlineChunk) then
                                 return i, "kill"
                             else
                                 return i, "dontkill"
@@ -287,7 +287,7 @@ local grammar = {
                 Cs((ExprStart * C(s.ENDIF) * ExprEnd) / "dontkill"),
 
     -- Because we are creating an anonymous embedded template, we need to 
-    -- pass in options (scanner and auto_indent) that the template cares about
+    -- pass in options (scanner and autoIndent) that the template cares about
     IfExpr = ExprStart * s.IF * s.LBRACE * IfExprAttr * IfExprProp * s.RBRACE * ExprEnd * 
                 --s.NEWLINE^0 * C((1 - (ExprStart * s.ENDIF))^0) * s.NEWLINE^0 * 
                 s.NEWLINE^0 * Ct(Chunk^1) * 
@@ -325,7 +325,7 @@ local parse = function(self, text)
         end
 
         local p = P(grammar)
-        chunks = lpeg.match(p, text, 1, self.scanner, self.auto_indent)
+        chunks = lpeg.match(p, text, 1, self.scanner, self.autoIndent)
     else
         chunks = {}
     end
@@ -333,12 +333,12 @@ local parse = function(self, text)
     return chunks
 end
 
-function __call(self, scanner_type, auto_indent) 
+function __call(self, scanner_type, autoIndent) 
     local parser = {}
 
     parser.parse = parse
     parser.scanner_type = scanner_type or DOLLAR_SCANNER
-    parser.auto_indent = auto_indent or true
+    parser.autoIndent = autoIndent or true
 
     if not (parser.scanner_type == DOLLAR_SCANNER or 
             parser.scanner_type == ANGLE_BRACKET_SCANNER) then

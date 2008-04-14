@@ -73,7 +73,7 @@ function __call(self, name, parent, implements)
     gmd.parent = parent
     gmd.implements = implements
 
-    gmd.isA = isA
+    gmd._isA = isA
 
     return gmd
 end

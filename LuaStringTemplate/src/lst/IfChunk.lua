@@ -136,7 +136,7 @@ local function eval(self)
 
             for _,chunk in ipairs(self.ifBodyChunks) do
                 strings[#strings + 1] = tostring(chunk)
-                if chunk:isA(NewlineChunk) and indent ~= nil then
+                if chunk:_isA(NewlineChunk) and indent ~= nil then
                     strings[#strings + 1] = indent
                 end
             end
@@ -191,7 +191,7 @@ function __call(self, attribute, property, ifBodyChunks)
     ifc.eval = eval
     ifc.setEnclosingTemplate = setEnclosingTemplate
     ifc.getEnclosingTemplate = getEnclosingTemplate
-    ifc.isA = isA
+    ifc._isA = isA
     ifc.setIndentChunk = setIndentChunk
 
     return ifc

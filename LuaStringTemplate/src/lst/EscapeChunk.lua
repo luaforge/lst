@@ -77,7 +77,7 @@ function __call(self, escapeChars)
     ec.escapeChars = escapeChars
     ec.eval = eval
     ec.setEnclosingTemplate = setEnclosingTemplate
-    ec.isA = isA
+    ec._isA = isA
     ec.setIndentChunk = setIndentChunk
 
     return ec

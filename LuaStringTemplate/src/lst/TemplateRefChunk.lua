@@ -71,7 +71,7 @@ local function eval(self)
     local et = assert(self:getEnclosingTemplate(), 
                         "enclosing template can't be nil")
 
-    local stg = et:getEnclosingGroup()
+    local stg = et:_getEnclosingGroup()
     if stg == nil then
         -- This is effectively an error, but not enough to kill the process
         return ''
@@ -93,13 +93,13 @@ local function eval(self)
         local oldIndex = tmt.__index
         tmt.__index = et
         
-        local etIndent = et:createIndentString()
+        local etIndent = et:_createIndentString()
         if etIndent ~= nil then
-            template:pushIndent(etIndent)
+            template:_pushIndent(etIndent)
         end
 
         if self.indentChunk ~= nil then
-            template:pushIndent(self.indentChunk)
+            template:_pushIndent(self.indentChunk)
         end
 
         -- Generate the string
@@ -113,11 +113,11 @@ local function eval(self)
         end
 
         if self.indentChunk then
-            template:popIndent()
+            template:_popIndent()
         end
 
         if etIndent ~= nil then
-            template:popIndent()
+            template:_popIndent()
         end
 
         tmt.__index = oldIndex
@@ -154,7 +154,7 @@ function __call(self, template, params)
     trc.eval = eval
     trc.setEnclosingTemplate = setEnclosingTemplate
     trc.getEnclosingTemplate = getEnclosingTemplate
-    trc.isA = isA
+    trc._isA = isA
     trc.setIndentChunk = setIndentChunk
 
     return trc

@@ -67,11 +67,11 @@ local mt = {
 }
 
 local function setEnclosingGroup(self, group)
-    self.st:setEnclosingGroup(group)
+    self.st:_setEnclosingGroup(group)
 end
 
 local function getEnclosingGroup(self)
-    return self.st:getEnclosingGroup()
+    return self.st:_getEnclosingGroup()
 end
 
 local function isA(self, class)
@@ -88,7 +88,7 @@ function __call(self, name, arguments, st)
 
     gt.getEnclosingGroup = getEnclosingGroup
     gt.setEnclosingGroup = setEnclosingGroup
-    gt.isA = isA
+    gt._isA = isA
 
     return gt
 end

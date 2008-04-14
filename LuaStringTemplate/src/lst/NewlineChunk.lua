@@ -71,7 +71,7 @@ end
 -- This is effectively a Singleton Flyweight
 nl.text = '\n'
 nl.setEnclosingTemplate = setEnclosingTemplate
-nl.isA = isA
+nl._isA = isA
 nl.setIndentChunk = setIndentChunk
 setmetatable(nl, mt)
 

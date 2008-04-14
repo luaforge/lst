@@ -143,7 +143,7 @@ local function getField(self)
 
     local sep = self.options['separator'] or ''
     if self.indentChunk then
-        if self.enclosingTemplate.__auto_indent then
+        if self.enclosingTemplate._autoIndent then
             sep = sep .. self.indentChunk.text
         end
     end
@@ -192,7 +192,7 @@ function __call(self, attribute, property, options)
 
     ac.eval = eval
     ac.setEnclosingTemplate = setEnclosingTemplate
-    ac.isA = isA
+    ac._isA = isA
     ac.setIndentChunk = setIndentChunk
 
     if type(ac.options) ~= 'table' then

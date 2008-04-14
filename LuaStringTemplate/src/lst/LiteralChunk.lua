@@ -77,7 +77,7 @@ function __call(self, text)
     end
 
     lc.setEnclosingTemplate = setEnclosingTemplate
-    lc.isA = isA
+    lc._isA = isA
     lc.setIndentChunk = setIndentChunk
 
     return lc

@@ -81,7 +81,7 @@ function assert_table_equal(expected, actual, debug, depth)
             --   LuaStringTemplate custom classes, and they have 
             --   __eq metamethods.
             --]]
-            if type(v.isA) == 'function' and type(v2.isA) == 'function' then
+            if type(v._isA) == 'function' and type(v2._isA) == 'function' then
                 if debug then
                     print(leader .. ' objects are lst classes')
                 end

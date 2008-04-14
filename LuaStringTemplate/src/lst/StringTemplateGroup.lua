@@ -52,15 +52,15 @@ local GroupTemplate = require( 'lst.GroupTemplate' )
 local GroupMap = require( 'lst.GroupMap' )
 
 local function eq(stg1, stg2)
-    if stg1.group_name ~= stg2.group_name then
+    if stg1._groupName ~= stg2._groupName then
         return false
     end
 
-    if stg1.dir ~= stg2.dir then
+    if stg1._dir ~= stg2._dir then
         return false
     end
 
-    if stg1.scanner ~= stg2.scanner then
+    if stg1._scanner ~= stg2._scanner then
         return false
     end
 
@@ -98,10 +98,10 @@ local function processParts(self, parts)
     self.maps = {}
 
     for _,v in ipairs(parts[2]) do
-        if v:isA(GroupTemplate) then
+        if v:_isA(GroupTemplate) then
             self.templates[v.name] = v
             v:setEnclosingGroup(self)
-        elseif v:isA(GroupMap) then
+        elseif v:_isA(GroupMap) then
             self.maps[v.name] = v
             v:setEnclosingGroup(self)
         else
@@ -115,7 +115,7 @@ local function isA(self, class)
 end
 
 local function loadGroup(self)
-    local name, dir, scanner = self.group_name, self.dir, self.scanner
+    local name, dir, scanner = self._groupName, self._dir, self._scanner
     local fname = dir .. '/' .. name .. '.stg'
 
     local f = assert(io_open(fname, "r"))
@@ -153,8 +153,7 @@ end
 --
 --]]
 function __call(self, ...)
-    local stg = {}
-    setmetatable(stg, mt)
+    local stg = setmetatable({}, { __eq = eq })
 
     if select('#', ...) == 0 then
         error('Zero-arg constructor not supported', 2)
@@ -164,30 +163,29 @@ function __call(self, ...)
             error('Bad arguments to constructor', 2)
         end
 
-        stg.group_name = name
-        stg.dir = dir
+        stg._groupName = name
+        stg._dir = dir
     elseif select('#', ...) == 1 and type(select(1, ...)) == 'table' then
         local args = {select(1,...)}
 
-        stg.group_name = args.name
-        stg.dir = args.dir
-        stg.scanner = args.scanner
+        stg._groupName = args.name
+        stg._dir = args.dir
+        stg._scanner = args.scanner
     else
         error('Bad arguments to constructor', 2)
     end
 
-    if not stg.group_name or not stg.dir then
+    if not stg._groupName or not stg._dir then
         error('Need group name and root directory', 2)
     end
 
-    stg.scanner = stg.scanner or STGParser.ANGLE_BRACKET_SCANNER
-
-    assert(stg.scanner ~= nil)
+    stg._scanner = stg._scanner or STGParser.ANGLE_BRACKET_SCANNER
+    assert(stg._scanner ~= nil)
 
     loadGroup(stg)
 
     stg.getInstanceOf = getInstanceOf
-    stg.isA = isA
+    stg._isA = isA
 
     return stg
 end

@@ -37,4 +37,3 @@ require( 'StringTemplateTests' )
 require( 'GroupParserTests' )
 require( 'GroupTests' )
 
-

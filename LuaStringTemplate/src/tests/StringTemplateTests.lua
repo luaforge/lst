@@ -484,7 +484,7 @@ end
 
 function testNoAutoIndent()
     local st = StringTemplate('one\n\n\t$foo; separator="\\n"$\nfive',
-                                { auto_indent = false }
+                                { autoIndent = false }
                              )
     local expected = 'one\n\n\ttwo\nthree\nfour\nfive'
 

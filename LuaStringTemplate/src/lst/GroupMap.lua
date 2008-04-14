@@ -83,7 +83,7 @@ function __call(self, name, mapping)
         gm[m[1]] = m[2]
     end
 
-    gm.isA = isA
+    gm._isA = isA
     gm.setEnclosingGroup = setEnclosingGroup
     gm.getEnclosingGroup = getEnclosingGroup
 
