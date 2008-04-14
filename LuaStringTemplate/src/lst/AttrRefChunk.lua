@@ -90,13 +90,12 @@ local function getField(self)
 
     local v = getRawValue(self, self.enclosingTemplate, attribute, property)
 
---[[
     if v == nil then
         -- is there a map that we can use?
         -- print('looking for map ' .. attribute .. ' in enclosing group')
 
         local et = self.enclosingTemplate
-        local stg = et:getEnclosingGroup()
+        local stg = et:_getEnclosingGroup()
         if stg then
             local map = stg.maps[attribute]
 
@@ -105,39 +104,38 @@ local function getField(self)
                 local template = map[property]
                 if template then
                     -- print('found template, render it')
-                    template:setEnclosingTemplate(et)
+                    template:_setEnclosingTemplate(et)
 
                     local tmt = getmetatable(template)
                     local oldIndex = tmt.__index
                     tmt.__index = et
 
-                    local etIndent = et:createIndentString()
+                    local etIndent = et:_createIndentString()
                     if etIndent ~= nil then
-                        template:pushIndent(etIndent)
+                        template:_pushIndent(etIndent)
                     end
 
                     if self.indentChunk ~= nil then
-                        template:pushIndent(self.indentChunk)
+                        template:_pushIndent(self.indentChunk)
                     end
 
                     v = tostring(template)
                     --print('v = \'' .. v .. '\'')
 
                     if self.indentChunk then
-                        template:popIndent()
+                        template:_popIndent()
                     end
 
                     if etIndent then
-                        template:popIndent()
+                        template:_popIndent()
                     end
 
                     tmt.__indent = oldIndex
-                    template:setEnclosingTemplate(nil)
+                    template:_setEnclosingTemplate(nil)
                 end
             end
         end
     end
---]]
 
     v = v or ''
 

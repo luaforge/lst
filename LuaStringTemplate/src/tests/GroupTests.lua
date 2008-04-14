@@ -167,63 +167,41 @@ t1() ::= "blah"
     assert_nil(t2)
 end
 
---[[
---  This test really just checks that the map is correctly 
---  parsed.  We can't check that it works until we have map
---  references implemented in a template.
---]]
-function testBasicMap()
+function testMapReference()
     writeGroupFile('g4', [=[
 group g4;
-
-initTypeMap ::= [
-    "int" : "0",
-    "long" : "0",
-    "float" : "0.0",
-    "double" : "0.0",
-    "boolean" : "false"
-]
-
-]=])
-
-    local stg = StringTemplateGroup('g4', tmpDir)
-
-    assert_not_nil(stg)
-end
-
---[[
-function testMapReference()
-    writeGroupFile('g4a', [=[
-group g4a;
 
 mapA ::= [
   "a" : "<foo>",
   "b" : "<bar>",
-  "c" : "d"
+  "c" : "d",
+  "d" : <<
+there once was a <blah> from nantucket
+>>
+
 ]
 
 t1() ::= <<
   <mapA.a>
   <mapA.b>
   <mapA.c>
+  <mapA.d>
 >>
 
 ]=])
 
-    local stg = StringTemplateGroup('g4a', tmpDir)
+    local stg = StringTemplateGroup('g4', tmpDir)
     local st = stg:getInstanceOf('t1')
-
-    dump_table('st', st)
 
     st.foo = 'yadda'
     st.bar = 'fred'
+    st.blah = 'man'
 
-    local expected = '  yadda\n  fred\n  d'
+    local expected = '  yadda\n  fred\n  d\n  there once was a man from nantucket'
     local result = tostring(st)
 
     assert_equal(expected, result)
 end
---]]
 
 function testTrivialTemplateRef()
     writeGroupFile('g5', [=[
