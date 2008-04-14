@@ -153,9 +153,9 @@ local function popIndent(self)
 end
 
 function __call(self, templateBody, options)
-    local chunks, scannerType, autoIndent
     local st = setmetatable({}, { __tostring = st_tostring,
                                   __eq = eq })
+    local chunks, scannerType, autoIndent
 
     if options then
         scannerType = options.scanner

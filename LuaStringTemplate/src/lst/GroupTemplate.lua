@@ -79,8 +79,7 @@ local function isA(self, class)
 end
 
 function __call(self, name, arguments, st)
-    gt = {}
-    setmetatable(gt, mt)
+    local gt = setmetatable({}, mt)
 
     gt.name = name
     gt.arguments = arguments

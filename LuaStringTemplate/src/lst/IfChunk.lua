@@ -175,8 +175,7 @@ local function setIndentChunk(self, chunk)
 end
 
 function __call(self, attribute, property, ifBodyChunks)
-    local ifc = {}
-    setmetatable(ifc, mt)
+    local ifc = setmetatable({}, { __tostring = ifc_tostring, __eq = eq})
 
     if string_match(attribute, '!.+') then
         ifc.attribute = string_gsub(attribute, '!(.+)', '%1')

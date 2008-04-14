@@ -57,7 +57,8 @@ local mt = {
 }
 
 local function setEnclosingTemplate(self, template)
-    self.enclosingTemplate = template
+    -- we don't care what the enclosing template is; we always write out 
+    -- the same newline text.
 end
 
 local function isA(self, class)
@@ -69,9 +70,8 @@ local function setIndentChunk(self, chunk)
 end
 
 -- This is effectively a Singleton Flyweight
-nl.text = '\n'
-nl.setEnclosingTemplate = setEnclosingTemplate
 nl._isA = isA
+nl.setEnclosingTemplate = setEnclosingTemplate
 nl.setIndentChunk = setIndentChunk
 setmetatable(nl, mt)
 

@@ -66,8 +66,7 @@ local function isA(self, class)
 end
 
 function __call(self, name, parent, implements)
-    gmd = {}
-    setmetatable(gmd, mt)
+    local gmd = setmetatable({}, mt)
 
     gmd.name = name
     gmd.parent = parent

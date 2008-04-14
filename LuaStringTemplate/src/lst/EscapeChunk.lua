@@ -48,11 +48,6 @@ local function eq(chunk1, chunk2)
     return chunk1.escapeChars == chunk2.escapeChars
 end
 
-local mt = {
-    __tostring = ec_tostring,
-    __eq = eq
-}
-
 local function eval(self)
     return self.escapeChars;
 end
@@ -71,8 +66,7 @@ end
 
 -- Constructor
 function __call(self, escapeChars)
-    local ec = {}
-    setmetatable(ec, mt)
+    local ec = setmetatable({}, { __tostring = ec_tostring, __eq = eq })
 
     ec.escapeChars = escapeChars
     ec.eval = eval

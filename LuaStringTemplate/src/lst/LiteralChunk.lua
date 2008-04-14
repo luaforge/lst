@@ -66,8 +66,7 @@ local function setIndentChunk(self, chunk)
 end
 
 function __call(self, text)
-    local lc = {}
-    setmetatable(lc, mt)
+    local lc = setmetatable({}, { __tostring = tostring, __eq = eq })
     
     lc.text = text
     if string_match(text, '^[%s]+$') then

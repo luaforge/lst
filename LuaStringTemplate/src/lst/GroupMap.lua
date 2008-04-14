@@ -75,8 +75,7 @@ local function getEnclosingGroup(self)
 end
 
 function __call(self, name, mapping)
-    gm = {}
-    setmetatable(gm, mt)
+    local gm = setmetatable({}, mt)
 
     gm.name = name
     for _,m in ipairs(mapping) do

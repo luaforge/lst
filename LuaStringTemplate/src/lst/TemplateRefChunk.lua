@@ -145,8 +145,7 @@ local function setIndentChunk(self, chunk)
 end
 
 function __call(self, template, params)
-    local trc = {}
-    setmetatable(trc, mt)
+    local trc = setmetatable({}, { __tostring = trc_tostring, __eq = eq })
 
     trc.template = template
     trc.params = params or {}

@@ -155,11 +155,6 @@ local function getField(self)
     end
 end
 
-local mt = {
-    __tostring = arc_tostring,
-    __eq = eq
-}
-
 local function eval(self)
     local attr = self.attribute
 
@@ -183,8 +178,7 @@ local function setIndentChunk(self, chunk)
 end
 
 function __call(self, attribute, property, options)
-    local ac = {}
-    setmetatable(ac, mt)
+    local ac = setmetatable({}, { __tostring = arc_tostring, __eq = eq })
     
     ac.attribute = attribute
     ac.property = property
