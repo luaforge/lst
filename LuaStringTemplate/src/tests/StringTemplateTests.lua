@@ -657,4 +657,42 @@ function testIfExprWhiteSpace2()
     assert_equal(expected, actual)
 end
 
+function testIfElse1()
+    local st = StringTemplate('one $if(foo)$ two $else$ two.five $endif$ three')
+    local expected = 'one  two  three'
+    
+    st.foo = 'exists'
+
+    local actual = tostring(st)
+    assert_not_nil(actual)
+    assert_equal(expected, actual)
+end
+
+function testIfElse2()
+    local st = StringTemplate('one $if(foo)$ two $else$ two.five $endif$ three')
+    local expected = 'one  two.five  three'
+
+    local actual = tostring(st)
+    assert_not_nil(actual)
+    assert_equal(expected, actual)
+end
+
+function testIfElseWhitespace()
+    local st = StringTemplate('one$if(foo)$\n two \n$else$\n two.five \n$endif$\nthree')
+    local expected = 'one two.five three'
+
+    local actual = tostring(st)
+    assert_not_nil(actual)
+    assert_equal(expected, actual)
+end
+
+function testIfElseWhitespace2()
+    local st = StringTemplate('one$if(foo)$\n two \n$else$\n two.five \n$endif$\nthree')
+    local expected = 'one two three'
+    st.foo = 'exists'
+
+    local actual = tostring(st)
+    assert_not_nil(actual)
+    assert_equal(expected, actual)
+end
 

@@ -100,7 +100,7 @@ local function newTemplateRef(template, params)
     return TemplateRefChunk(template, actual_params)
 end
 
-local function newIf(attribute, property, templateBody, killNewline, scanner, autoIndent)
+local function newIf(attribute, property, templateBody, elseBody, killNewline)
     --[[
     print('a:', attribute, 
             'p:', property,
@@ -109,13 +109,25 @@ local function newIf(attribute, property, templateBody, killNewline, scanner, au
             'ai:', autoIndent)
     --]]
 
-    local opts = { scanner = scanner, autoIndent = autoIndent }
-    if killNewline == 'kill' then
-        -- need to strip the last NewlineChunk from the template body
-        templateBody[#templateBody] = nil
+    if type(elseBody) == 'string' then  -- no else body, matched EPSILON
+        elseBody = {}
+
+        if killNewline == 'kill' then
+            -- need to strip the last NewlineChunk from the template body
+            templateBody[#templateBody] = nil
+        end
+    else
+        if killNewline == 'kill' then
+            elseBody[#elseBody] = nil
+        end
+
+        -- Need to kill preceeding newline
+        if templateBody[#templateBody]:_isA(NewlineChunk) then
+            templateBody[#templateBody] = nil
+        end
     end
 
-    return IfChunk(attribute, property, templateBody)
+    return IfChunk(attribute, property, templateBody, elseBody)
 end
 
 -- Grammar terminals
@@ -142,7 +154,8 @@ local s = {
     LBRACE = P'(',
     RBRACE = P')',
     IF = P'if',
-    ENDIF = P'endif'
+    ENDIF = P'endif',
+    ELSE = P'else'
 }
 
 local literalEscapes = {
@@ -219,7 +232,7 @@ local grammar = {
 
     Chunk = Newline + Literal + Expr,
 
-    Expr = -EndifExpr * (EscapeExpr + CommentExpr + IfExpr + TemplateRefExpr + AttrRefExpr),
+    Expr = -(ExprStart * (s.ENDIF + s.ELSE) * ExprEnd) * (EscapeExpr + CommentExpr + IfExpr + TemplateRefExpr + AttrRefExpr),
 
     Newline = C(s.NEWLINE) / newNewline,
 
@@ -288,11 +301,11 @@ local grammar = {
 
     -- Because we are creating an anonymous embedded template, we need to 
     -- pass in options (scanner and autoIndent) that the template cares about
-    IfExpr = ExprStart * s.IF * s.LBRACE * IfExprAttr * IfExprProp * s.RBRACE * ExprEnd * 
-                --s.NEWLINE^0 * C((1 - (ExprStart * s.ENDIF))^0) * s.NEWLINE^0 * 
-                s.NEWLINE^0 * Ct(Chunk^1) * 
-                EndifExpr * 
-                Carg(1) * Carg(2) / newIf,
+    IfExpr = ExprStart * s.IF * s.LBRACE * IfExprAttr * IfExprProp * s.RBRACE * ExprEnd 
+                * s.NEWLINE^0 
+                * Ct(Chunk^1) 
+                * ((ExprStart * s.ELSE * ExprEnd * s.NEWLINE^0 * Ct(Chunk^1)) + C(s.EPSILON))
+                * EndifExpr / newIf,
 
     IfExprAttr = C((1 - (s.PERIOD + s.RBRACE + ExprEnd))^1),
 

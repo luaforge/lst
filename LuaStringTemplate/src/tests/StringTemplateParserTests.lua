@@ -159,3 +159,10 @@ function testParseNestedIf()
     assert_table_equal(expected, result)
 end
 
+function testParseIfElse()
+    local ifa = IfChunk('a', '', { t2 }, { t3 })
+    local expected = { t1, ifa }
+    local result = parser:parse('text1$if(a)$text2$else$text3$endif$')
+    assert_table_equal(expected, result)
+end
+

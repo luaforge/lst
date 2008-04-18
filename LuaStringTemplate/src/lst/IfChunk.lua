@@ -67,6 +67,13 @@ local function eq(chunk1, chunk2)
         end
     end
 
+    for i,e1 in ipairs(chunk1.elseBodyChunks) do
+        e2 = chunk2.elseBodyChunks[i]
+        if e1 ~= e2 then
+            return false
+        end
+    end
+
     return true
 end
 
@@ -121,32 +128,40 @@ local function getField(self)
     return result
 end
 
+local function evalChunks(self, chunks)
+    local strings = {}
+    local indent
+
+    if self.indentChunk then
+        indent = tostring(self.indentChunk)
+    end
+
+    for _,chunk in ipairs(chunks) do
+        strings[#strings + 1] = tostring(chunk)
+        if chunk:_isA(NewlineChunk) and indent ~= nil then
+            strings[#strings + 1] = indent
+        end
+    end
+
+    return table_concat(strings)
+end
+
 local function eval(self)
     local foundIt = getField(self)
     local result
 
     if foundIt then
         if self.ifBodyChunks then
-            local strings = {}
-            local indent
-
-            if self.indentChunk then
-                indent = tostring(self.indentChunk)
-            end
-
-            for _,chunk in ipairs(self.ifBodyChunks) do
-                strings[#strings + 1] = tostring(chunk)
-                if chunk:_isA(NewlineChunk) and indent ~= nil then
-                    strings[#strings + 1] = indent
-                end
-            end
-
-            result = table_concat(strings)
+            result = evalChunks(self, self.ifBodyChunks)
         else
             result = ''
         end
     else
-        result = ''
+        if self.elseBodyChunks then
+            result = evalChunks(self, self.elseBodyChunks)
+        else
+            result = ''
+        end
     end
 
     return result
@@ -164,6 +179,12 @@ local function setEnclosingTemplate(self, template)
             c:setEnclosingTemplate(template)
         end
     end
+
+    if self.elseBodyChunks then
+        for _,c in ipairs(self.elseBodyChunks) do
+            c:setEnclosingTemplate(template)
+        end
+    end
 end
 
 local function getEnclosingTemplate(self)
@@ -174,7 +195,7 @@ local function setIndentChunk(self, chunk)
     self.indentChunk = chunk
 end
 
-function __call(self, attribute, property, ifBodyChunks)
+function __call(self, attribute, property, ifBodyChunks, elseBodyChunks)
     local ifc = setmetatable({}, { __tostring = ifc_tostring, __eq = eq})
 
     if string_match(attribute, '!.+') then
@@ -184,8 +205,12 @@ function __call(self, attribute, property, ifBodyChunks)
         ifc.attribute = attribute
         ifc.negate = false
     end
+
+    elseBodyChunks = elseBodyChunks or {}
+
     ifc.property = property
     ifc.ifBodyChunks = ifBodyChunks
+    ifc.elseBodyChunks = elseBodyChunks
 
     ifc.eval = eval
     ifc.setEnclosingTemplate = setEnclosingTemplate
