@@ -40,6 +40,9 @@ local pairs = pairs
 local tostring = tostring
 local print = print
 local assert = assert
+local type = type
+local table_concat = table.concat
+local ipairs = ipairs
 
 module( 'lst.TemplateRefChunk' )
 
@@ -81,14 +84,9 @@ local function eval(self)
     local result
 
     if template then
+        local results = {}
         -- Setup the template
         
-        local oldParams = {}
-        for k,v in pairs(self.params) do
-            oldParams[k] = template[k]
-            template[k] = et[v]
-        end
-
         local tmt = getmetatable(template)
         local oldIndex = tmt.__index
         tmt.__index = et
@@ -102,9 +100,43 @@ local function eval(self)
             template:_pushIndent(self.indentChunk)
         end
 
+        --
+        -- This gets complicated, because multi-valued attributes should 
+        -- result in calling the referenced template for each value.  If
+        -- there are multiple multi-valued attributes, is it the cross-product
+        -- or do the positions march in step?  I think its the cross-product
+        -- unfortunately.
+        local oldParams = {}
+        local multiValCount = 0
+        local multiVals = {}
+        for k,v in pairs(self.params) do
+            oldParams[k] = template[k]
+
+            if type(et[v]) == 'table' then
+                multiValCount = multiValCount + 1
+                multiVals[#multiVals + 1] = {
+                    key = k,
+                    values = et[v],
+                    index = 1
+                }
+            else
+                template[k] = et[v]
+            end
+        end
+
         -- Generate the string
-        
-        result = tostring(template)
+       
+        if multiValCount == 0 then
+            results[#results + 1] = tostring(template)
+        elseif multiValCount == 1 then
+            mv = multiVals[1]
+            for _,v in ipairs(mv.values) do
+                template[mv.key] = v
+                results[#results + 1] = tostring(template)
+            end
+        else
+            error('multiple multi-valued attributes not yet supported')
+        end
 
         -- Restore the template
 
@@ -121,6 +153,8 @@ local function eval(self)
         end
 
         tmt.__index = oldIndex
+
+        result = table_concat(results)
     else
         result = ''
     end

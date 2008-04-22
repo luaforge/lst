@@ -288,7 +288,7 @@ a <t2(foo=bar)> d
 >>
 
 t2(foo) ::= <<
-b c <foo; separator="\t">
+b c <foo> 
 >>
 
 ]=])
@@ -297,7 +297,7 @@ b c <foo; separator="\t">
     local st = stg:getInstanceOf('t1')
     st.bar = { 'z', 'y', 'x' }
 
-    local expected = "a b c z\ty\tx d"
+    local expected = "a b c z b c y b c x  d"
     local result = tostring(st)
 
     -- utils.dump_table('stg', stg)
