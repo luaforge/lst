@@ -396,20 +396,20 @@ t2(foo) ::= <<
 end
 
 function testTemplateRefWithThreeMultivaluedParams()
-    writeGroupFile('g11', [=[
-group g11;
+    writeGroupFile('g12', [=[
+group g12;
 
 t1() ::= <<
 a <t2(baz=blah, foo=bar, yadda=bibidy)> d
 >>
 
-t2(foo) ::= <<
+t2(foo, baz, yadda) ::= <<
 @ <foo> <baz> <yadda> 
 >>
 
 ]=])
 
-    local stg = StringTemplateGroup('g11', tmpDir)
+    local stg = StringTemplateGroup('g12', tmpDir)
     local st = stg:getInstanceOf('t1')
     st.bar = { 'z', 'y', 'x' }
     st.blah = { 1, 2 }
@@ -420,6 +420,39 @@ t2(foo) ::= <<
     local result = tostring(st)
 
     -- utils.dump_table('stg', stg)
+
+    assert_not_nil(result)
+    assert_equal(expected, result)
+end
+
+--
+-- If a parameter passed to a template is a table, it has to be an array
+-- to be considered a multi-valued attribute
+--
+function testSimpleTableAttributeArgument()
+    writeGroupFile('g13', [=[
+group g13;
+
+t1() ::= <<
+a <t2(bar=foo)> c
+>>
+
+t2(bar) ::= <<
+z <t3(yadda=bar)> y
+>>
+
+t3(yadda) ::= <<
+1 <yadda.blah> 3
+>>
+
+]=])
+
+    local stg = StringTemplateGroup('g13', tmpDir)
+    local st = stg:getInstanceOf('t1')
+    st.foo = { blah = '#' }
+
+    local expected = "a z 1 # 3 y c"
+    local result = tostring(st)
 
     assert_not_nil(result)
     assert_equal(expected, result)

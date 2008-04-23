@@ -152,15 +152,22 @@ local function eval(self)
         for _,kvp in ipairs(self.params) do
             oldParams[kvp.key] = template[kvp.key]
 
-            if type(et[kvp.valueKey]) == 'table' then
-                multiValCount = multiValCount + 1
-                multiVals[#multiVals + 1] = {
-                    key = kvp.key,
-                    values = et[kvp.valueKey],
-                    index = 1
-                }
+            local val = et[kvp.valueKey]
+            if (type(val) == 'table') then
+                if #val > 0 then
+                    -- its an array, so this is a multi-valued attribute
+                    multiValCount = multiValCount + 1
+                    multiVals[#multiVals + 1] = {
+                        key = kvp.key,
+                        values = val,
+                        index = 1
+                    }
+                else
+                    -- This is really just another attribute
+                    template[kvp.key] = val
+                end
             else
-                template[kvp.key] = et[kvp.valueKey]
+                template[kvp.key] = val
             end
         end
 
