@@ -43,6 +43,8 @@ local assert = assert
 local type = type
 local table_concat = table.concat
 local ipairs = ipairs
+local error = error
+local select = select
 
 module( 'lst.TemplateRefChunk' )
 
@@ -55,9 +57,23 @@ local function eq(chunk1, chunk2)
         return false
     end
 
+    --[[
     for k,v1 in pairs(chunk1.params) do
         local v2 = chunk2.params[k]
         if v1 ~= v2 then
+            return false
+        end
+    end
+    --]]
+
+    for i,kvp in ipairs(chunk1.params) do
+        kvp2 = chunk2.params[i]
+
+        if kvp.key ~= kvp2.key then
+            return false
+        end
+
+        if kvp.valueKey ~= kvp2.valueKey then
             return false
         end
     end
@@ -69,6 +85,33 @@ local mt = {
     __tostring = trc_tostring,
     __eq = eq
 }
+
+local function genCrossProduct(template, results, multiVals, valStack, mvIndex)
+    local valStack = valStack or {}
+    local mvIndex = mvIndex or 1
+
+    if multiVals[mvIndex] == nil then
+        -- We have all of the values in the stack necessary to execute the
+        -- template
+        for _,kvp in ipairs(valStack) do
+            template[kvp.key] = kvp.value
+        end
+
+        results[#results + 1] = tostring(template)
+
+        return
+    end
+
+    local mv = multiVals[mvIndex]
+    for _,v in ipairs(mv.values) do
+        valStack[#valStack + 1] = { key = mv.key, value = v }
+
+        genCrossProduct(template, results, multiVals, valStack, mvIndex + 1)
+
+        valStack[#valStack] = nil
+    end
+end
+
 
 local function eval(self)
     local et = assert(self:getEnclosingTemplate(), 
@@ -100,27 +143,24 @@ local function eval(self)
             template:_pushIndent(self.indentChunk)
         end
 
-        --
         -- This gets complicated, because multi-valued attributes should 
         -- result in calling the referenced template for each value.  If
-        -- there are multiple multi-valued attributes, is it the cross-product
-        -- or do the positions march in step?  I think its the cross-product
-        -- unfortunately.
+        -- there are multiple multi-valued attributes, we get the cross-product.
         local oldParams = {}
         local multiValCount = 0
         local multiVals = {}
-        for k,v in pairs(self.params) do
-            oldParams[k] = template[k]
+        for _,kvp in ipairs(self.params) do
+            oldParams[kvp.key] = template[kvp.key]
 
-            if type(et[v]) == 'table' then
+            if type(et[kvp.valueKey]) == 'table' then
                 multiValCount = multiValCount + 1
                 multiVals[#multiVals + 1] = {
-                    key = k,
-                    values = et[v],
+                    key = kvp.key,
+                    values = et[kvp.valueKey],
                     index = 1
                 }
             else
-                template[k] = et[v]
+                template[kvp.key] = et[kvp.valueKey]
             end
         end
 
@@ -135,13 +175,14 @@ local function eval(self)
                 results[#results + 1] = tostring(template)
             end
         else
-            error('multiple multi-valued attributes not yet supported')
+            genCrossProduct(template, results, multiVals)
+            --error('multiple multi-valued attributes not yet supported')
         end
 
         -- Restore the template
 
-        for k,_ in pairs(self.params) do
-            template[k] = oldParams[k]
+        for k,v in pairs(oldParams) do
+            template[k] = v
         end
 
         if self.indentChunk then

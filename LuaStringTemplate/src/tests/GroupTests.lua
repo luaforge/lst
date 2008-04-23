@@ -366,3 +366,62 @@ bar
     assert_equal(expected, result)
 end
 
+function testTemplateRefWithTwoMultivaluedParams()
+    writeGroupFile('g11', [=[
+group g11;
+
+t1() ::= <<
+a <t2(baz=blah, foo=bar)> d
+>>
+
+t2(foo) ::= <<
+@ <foo> <baz> 
+>>
+
+]=])
+
+    local stg = StringTemplateGroup('g11', tmpDir)
+    local st = stg:getInstanceOf('t1')
+    st.bar = { 'z', 'y', 'x' }
+    st.blah = { 1, 2 }
+
+    local expected = "a @ z 1 @ y 1 @ x 1 @ z 2 @ y 2 @ x 2  d"
+
+    local result = tostring(st)
+
+    -- utils.dump_table('stg', stg)
+
+    assert_not_nil(result)
+    assert_equal(expected, result)
+end
+
+function testTemplateRefWithThreeMultivaluedParams()
+    writeGroupFile('g11', [=[
+group g11;
+
+t1() ::= <<
+a <t2(baz=blah, foo=bar, yadda=bibidy)> d
+>>
+
+t2(foo) ::= <<
+@ <foo> <baz> <yadda> 
+>>
+
+]=])
+
+    local stg = StringTemplateGroup('g11', tmpDir)
+    local st = stg:getInstanceOf('t1')
+    st.bar = { 'z', 'y', 'x' }
+    st.blah = { 1, 2 }
+    st.bibidy = { '$', '%', '^' }
+
+    local expected = "a @ z 1 $ @ z 1 % @ z 1 ^ @ y 1 $ @ y 1 % @ y 1 ^ @ x 1 $ @ x 1 % @ x 1 ^ @ z 2 $ @ z 2 % @ z 2 ^ @ y 2 $ @ y 2 % @ y 2 ^ @ x 2 $ @ x 2 % @ x 2 ^  d"
+
+    local result = tostring(st)
+
+    -- utils.dump_table('stg', stg)
+
+    assert_not_nil(result)
+    assert_equal(expected, result)
+end
+

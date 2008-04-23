@@ -94,6 +94,10 @@ local function newTemplateRef(template, params)
         for i=1, #params, 2 do
             --print('param', 'name:', params[i], 'value:', params[i+1])
             actual_params[params[i]] = params[i+1]
+            actual_params[#actual_params + 1] = {
+                key = params[i],
+                valueKey = params[i + 1]
+            }
         end
     end
 
