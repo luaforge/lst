@@ -48,6 +48,8 @@ local select = select
 
 module( 'lst.TemplateRefChunk' )
 
+local AttrProp = require( 'lst.AttrProp' )
+
 local function trc_tostring(chunk)
     return chunk:eval()
 end
@@ -56,15 +58,6 @@ local function eq(chunk1, chunk2)
     if chunk1.template ~= chunk2.template then
         return false
     end
-
-    --[[
-    for k,v1 in pairs(chunk1.params) do
-        local v2 = chunk2.params[k]
-        if v1 ~= v2 then
-            return false
-        end
-    end
-    --]]
 
     for i,kvp in ipairs(chunk1.params) do
         kvp2 = chunk2.params[i]
@@ -152,7 +145,7 @@ local function eval(self)
         for _,kvp in ipairs(self.params) do
             oldParams[kvp.key] = template[kvp.key]
 
-            local val = et[kvp.valueKey]
+            local val = AttrProp.getValue(et, kvp.valueKey)
             if (type(val) == 'table') then
                 if #val > 0 then
                     -- its an array, so this is a multi-valued attribute
@@ -227,16 +220,21 @@ local function setIndentChunk(self, chunk)
 end
 
 function __call(self, template, params)
-    local trc = setmetatable({}, { __tostring = trc_tostring, __eq = eq })
-
-    trc.template = template
-    trc.params = params or {}
-
-    trc.eval = eval
-    trc.setEnclosingTemplate = setEnclosingTemplate
-    trc.getEnclosingTemplate = getEnclosingTemplate
-    trc._isA = isA
-    trc.setIndentChunk = setIndentChunk
+    local trc = setmetatable(
+        {
+            template = template,
+            params = params or {},
+            eval = eval,
+            setEnclosingTemplate = setEnclosingTemplate,
+            getEnclosingTemplate = getEnclosingTemplate,
+            _isA = isA,
+            setIndentChunk = setIndentChunk
+        }, 
+        {
+            __tostring = trc_tostring, 
+            __eq = eq 
+        }
+    )
 
     return trc
 end

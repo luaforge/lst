@@ -274,7 +274,7 @@ local grammar = {
 
     TemplateParam = Name * s.WS^0 * s.EQUALS * s.WS^0 * Name,
 
-    Name = C(s.AZ * (s.AZ + s.N)^0),
+    Name = C(s.AZ * (s.AZ + s.N + s.PERIOD)^0),
 
     TemplateRefExpr = ExprStart * (TemplateRef * 
                         s.LBRACE * s.WS^0 *

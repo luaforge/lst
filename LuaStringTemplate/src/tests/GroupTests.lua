@@ -458,3 +458,27 @@ t3(yadda) ::= <<
     assert_equal(expected, result)
 end
 
+function testArgWithProperty()
+    writeGroupFile('g14', [=[
+group g14;
+
+t1() ::= <<
+a <t2(foo=bar.baz)> c
+>>
+
+t2(foo) ::= <<
+1 <foo> 2
+>>
+
+]=])
+
+    local stg = StringTemplateGroup('g14', tmpDir)
+    local st = stg:getInstanceOf('t1')
+    st.bar = { baz = "@" }
+
+    local expected = "a 1 @ 2 c"
+    local result = tostring(st)
+
+    assert_not_nil(result)
+    assert_equal(expected, result)
+end
