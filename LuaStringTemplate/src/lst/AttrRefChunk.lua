@@ -51,6 +51,8 @@ local error = error
 
 module( 'lst.AttrRefChunk' )
 
+local AttrProp = require( 'lst.AttrProp' )
+
 local function arc_tostring(chunk)
     return chunk:eval()
 end
@@ -59,83 +61,12 @@ local function eq(chunk1, chunk2)
     return chunk1.attribute == chunk2.attribute
 end
 
-local function getRawValue(self, context, attribute, property)
-    local v = context[attribute]
-
-    if v ~= nil and property then
-        for w in string_gmatch(property, "[%w_]+") do
-            v = v[w]
-            if not v then break end
-        end
-    end
-
-    --v = v or ''
-
-    return v
-end
-
 local function getField(self)
     local attribute = self.attribute
     local property = self.property
+    local et = self.enclosingTemplate
 
-    if string_match(property, '%(.+%)') then
-        -- indirect property lookup
-        local indirect = string_gsub(property, '%((.+)%)', "%1")
-        local attr, ignore, prop = string_match(indirect, '([%w_]+)[%.]?(.*)')
-        property = getRawValue(self, 
-                               self.enclosingTemplate, 
-                               attr,
-                               prop)
-    end
-
-    local v = getRawValue(self, self.enclosingTemplate, attribute, property)
-
-    if v == nil then
-        -- is there a map that we can use?
-        -- print('looking for map ' .. attribute .. ' in enclosing group')
-
-        local et = self.enclosingTemplate
-        local stg = et:_getEnclosingGroup()
-        if stg then
-            local map = stg.maps[attribute]
-
-            if map then
-                -- print('found map, looking for key ' .. property)
-                local template = map[property]
-                if template then
-                    -- print('found template, render it')
-                    template:_setEnclosingTemplate(et)
-
-                    local tmt = getmetatable(template)
-                    local oldIndex = tmt.__index
-                    tmt.__index = et
-
-                    local etIndent = et:_createIndentString()
-                    if etIndent ~= nil then
-                        template:_pushIndent(etIndent)
-                    end
-
-                    if self.indentChunk ~= nil then
-                        template:_pushIndent(self.indentChunk)
-                    end
-
-                    v = tostring(template)
-                    --print('v = \'' .. v .. '\'')
-
-                    if self.indentChunk then
-                        template:_popIndent()
-                    end
-
-                    if etIndent then
-                        template:_popIndent()
-                    end
-
-                    tmt.__indent = oldIndex
-                    template:_setEnclosingTemplate(nil)
-                end
-            end
-        end
-    end
+    local v = AttrProp.getValue(et, attribute, property)
 
     v = v or ''
 

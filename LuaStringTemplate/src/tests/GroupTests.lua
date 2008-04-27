@@ -482,3 +482,91 @@ t2(foo) ::= <<
     assert_not_nil(result)
     assert_equal(expected, result)
 end
+
+function testArgHiding()
+    writeGroupFile('g15', [=[
+group g15;
+
+t1() ::= <<
+a <t2(foo=bar)> c
+>>
+
+t2(foo) ::= <<
+<if(foo.a)>
+<t3(foo=foo)>
+<else>
+<t4(foo=foo)>
+<endif>
+>>
+
+t3(foo) ::= <<
+<foo.a>
+>>
+
+t4(foo) ::= <<
+<foo.b>
+>>
+
+]=])
+
+    local stg = StringTemplateGroup('g15', tmpDir)
+    local st = stg:getInstanceOf('t1')
+    st.bar = { a = "Z", b = "A" }
+
+    local expected = "a Z c"
+    local result = tostring(st)
+
+    assert_not_nil(result)
+    assert_equal(expected, result)
+
+    st.bar = nil
+    st.bar = { b = "A" }
+    -- FIXME: This is actually a whitespace bug; there shouldn't be a newline
+    local expected = "a A\n c"
+    local result = tostring(st)
+    assert_not_nil(result)
+    assert_equal(expected, result)
+end
+
+--[[
+function testRecursiveTemplateRef()
+    writeGroupFile('g16', [=[
+group 16;
+
+t1() ::= <<
+a <t2(f=foos)> c
+>>
+
+t2(f) ::= <<
+<if(f.b)>
+<t3(c=f)>
+<else>
+blah 
+<endif>
+>>
+
+t3(c) ::= <<
+yadda <t2(f=c.foos)>
+>>
+
+]=])
+
+    local stg = StringTemplateGroup('g16', tmpDir)
+    local st = stg:getInstanceOf('t1')
+    st.foos = { 
+        { b = 'exists' },
+        { a = 'exists' },
+        { b = 'exists', 
+          foos = {
+              { b = 'exists' }
+          }
+        }
+    }
+
+    local expected = "a yadda blah yadda yadda c"
+    local result = tostring(st)
+
+    assert_not_nil(result)
+    assert_equal(expected, result)
+end
+--]]

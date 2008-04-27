@@ -98,9 +98,7 @@ local function genCrossProduct(template, results, multiVals, valStack, mvIndex)
     local mv = multiVals[mvIndex]
     for _,v in ipairs(mv.values) do
         valStack[#valStack + 1] = { key = mv.key, value = v }
-
         genCrossProduct(template, results, multiVals, valStack, mvIndex + 1)
-
         valStack[#valStack] = nil
     end
 end
@@ -146,6 +144,7 @@ local function eval(self)
             oldParams[kvp.key] = template[kvp.key]
 
             local val = AttrProp.getValue(et, kvp.valueKey)
+
             if (type(val) == 'table') then
                 if #val > 0 then
                     -- its an array, so this is a multi-valued attribute

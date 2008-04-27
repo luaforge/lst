@@ -696,3 +696,29 @@ function testIfElseWhitespace2()
     assert_equal(expected, actual)
 end
 
+function testComplicatedIfElseNesting()
+    local st = StringTemplate([=[
+one $if(foo.a)$
+$if(foo.b)$
+blah 
+$else$
+blah2 
+$endif$
+$else$
+$if(foo.b)$
+yadda 
+$else$
+yadda2 
+$endif$
+$endif$
+two
+]=])
+
+    local expected = 'one blah two\n'
+    st.foo = { a = 'exists', b = 'exists' }
+
+    local actual = tostring(st)
+    assert_not_nil(actual)
+    assert_equal(expected, actual)
+end
+

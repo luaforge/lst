@@ -56,8 +56,6 @@ local function getRawValue(context, attribute, property)
         end
     end
 
-    --v = v or ''
-
     return v
 end
 
@@ -100,21 +98,21 @@ function getValue(context, attribute, property)
 
                         local tmt = getmetatable(template)
                         local oldIndex = tmt.__index
-                        tmt.__index = et
+                        tmt.__index = context
 
-                        local etIndent = et:_createIndentString()
+                        local etIndent = context:_createIndentString()
                         if etIndent ~= nil then
                             template:_pushIndent(etIndent)
                         end
 
-                        if self.indentChunk ~= nil then
-                            template:_pushIndent(self.indentChunk)
+                        if context.indentChunk ~= nil then
+                            template:_pushIndent(context.indentChunk)
                         end
 
                         v = tostring(template)
                         --print('v = \'' .. v .. '\'')
 
-                        if self.indentChunk then
+                        if context.indentChunk then
                             template:_popIndent()
                         end
 
@@ -129,8 +127,6 @@ function getValue(context, attribute, property)
             end
         end
     end
-
-    v = v or ''
 
     return v
 end
