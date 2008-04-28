@@ -53,7 +53,6 @@ local function eval(self)
 end
 
 local function setEnclosingTemplate(self, template)
-    self.enclosingTemplate = template
 end
 
 local function isA(self, class)
@@ -61,18 +60,25 @@ local function isA(self, class)
 end
 
 local function setIndentChunk(self, chunk)
-    self.indentChunk = chunk
+end
+
+local function clone(self)
+    return self;
 end
 
 -- Constructor
 function __call(self, escapeChars)
-    local ec = setmetatable({}, { __tostring = ec_tostring, __eq = eq })
-
-    ec.escapeChars = escapeChars
-    ec.eval = eval
-    ec.setEnclosingTemplate = setEnclosingTemplate
-    ec._isA = isA
-    ec.setIndentChunk = setIndentChunk
+    local ec = setmetatable({
+        escapeChars = escapeChars,
+        eval = eval,
+        setEnclosingTemplate = setEnclosingTemplate,
+        _isA = isA,
+        setIndentChunk = setIndentChunk,
+        clone = clone
+    }, { 
+        __tostring = ec_tostring, 
+        __eq = eq 
+    })
 
     return ec
 end

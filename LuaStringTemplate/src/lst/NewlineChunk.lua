@@ -69,10 +69,15 @@ local function setIndentChunk(self, chunk)
     -- ignored
 end
 
+local function clone(self)
+    return self
+end
+
 -- This is effectively a Singleton Flyweight
 nl._isA = isA
 nl.setEnclosingTemplate = setEnclosingTemplate
 nl.setIndentChunk = setIndentChunk
+nl.clone = clone
 setmetatable(nl, mt)
 
 function __call(self)

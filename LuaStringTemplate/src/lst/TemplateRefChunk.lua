@@ -114,10 +114,12 @@ local function eval(self)
         return ''
     end
 
-    local template = stg:getInstanceOf(self.template)
+    --print('trc: get instance of ' .. self.templateName)
+    local template = stg:getInstanceOf(self.templateName)
     local result
 
     if template then
+        --print('trc: - found instance, getting result(s)')
         local results = {}
         -- Setup the template
         
@@ -140,12 +142,14 @@ local function eval(self)
         local oldParams = {}
         local multiValCount = 0
         local multiVals = {}
+        local atLeastOne = false
         for _,kvp in ipairs(self.params) do
             oldParams[kvp.key] = template[kvp.key]
 
             local val = AttrProp.getValue(et, kvp.valueKey)
 
             if (type(val) == 'table') then
+                atLeastOne = true
                 if #val > 0 then
                     -- its an array, so this is a multi-valued attribute
                     multiValCount = multiValCount + 1
@@ -158,24 +162,26 @@ local function eval(self)
                     -- This is really just another attribute
                     template[kvp.key] = val
                 end
-            else
+            elseif val ~= nil then
+                atLeastOne = true
                 template[kvp.key] = val
             end
         end
 
-        -- Generate the string
-       
-        if multiValCount == 0 then
-            results[#results + 1] = tostring(template)
-        elseif multiValCount == 1 then
-            mv = multiVals[1]
-            for _,v in ipairs(mv.values) do
-                template[mv.key] = v
+        if atLeastOne or #(self.params) == 0 then 
+            -- Generate the string
+            if multiValCount == 0 then
                 results[#results + 1] = tostring(template)
+            elseif multiValCount == 1 then
+                mv = multiVals[1]
+                for _,v in ipairs(mv.values) do
+                    template[mv.key] = v
+                    results[#results + 1] = tostring(template)
+                end
+            else
+                genCrossProduct(template, results, multiVals)
+                --error('multiple multi-valued attributes not yet supported')
             end
-        else
-            genCrossProduct(template, results, multiVals)
-            --error('multiple multi-valued attributes not yet supported')
         end
 
         -- Restore the template
@@ -218,16 +224,26 @@ local function setIndentChunk(self, chunk)
     self.indentChunk = chunk
 end
 
-function __call(self, template, params)
+local function clone(self)
+    local c = __call(_M, self.templateName, self.params)
+    if self.indentChunk then
+        c.indentChunk = self.indentChunk:clone()
+    end
+
+    return c
+end
+
+function __call(self, templateName, params)
     local trc = setmetatable(
         {
-            template = template,
+            templateName = templateName,
             params = params or {},
             eval = eval,
             setEnclosingTemplate = setEnclosingTemplate,
             getEnclosingTemplate = getEnclosingTemplate,
             _isA = isA,
-            setIndentChunk = setIndentChunk
+            setIndentChunk = setIndentChunk,
+            clone = clone
         }, 
         {
             __tostring = trc_tostring, 

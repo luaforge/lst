@@ -152,6 +152,17 @@ local function popIndent(self)
     self._indentStack[#self._indentStack] = nil
 end
 
+local function clone(self)
+    local newTemplateBody = {}
+    for i,c in ipairs(self._chunks) do
+        newTemplateBody[i] = c:clone()
+    end
+
+    local c = __call(_M, newTemplateBody, { self._scanner, self._autoIndent })
+
+    return c
+end
+
 function __call(self, templateBody, options)
     local st = setmetatable({}, { __tostring = st_tostring,
                                   __eq = eq })
@@ -197,6 +208,7 @@ function __call(self, templateBody, options)
     st._pushIndent = pushIndent
     st._popIndent = popIndent
     st._createIndentString = createIndentString
+    st._clone = clone
 
     return st;
 end

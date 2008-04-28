@@ -138,6 +138,10 @@ local function getInstanceOf(self, templateName)
     local st = nil
 
     if gt then st = gt.st end
+    if st then 
+        st = st:_clone() 
+        st:_setEnclosingGroup(self)
+    end
    
     return st
 end

@@ -54,7 +54,6 @@ local mt = {
 }
 
 local function setEnclosingTemplate(self, template)
-    self.enclosingTemplate = template
 end
 
 local function isA(self, class)
@@ -62,7 +61,10 @@ local function isA(self, class)
 end
 
 local function setIndentChunk(self, chunk)
-    self.indentChunk = chunk
+end
+
+local function clone(self)
+    return self
 end
 
 function __call(self, text)
@@ -78,6 +80,7 @@ function __call(self, text)
     lc.setEnclosingTemplate = setEnclosingTemplate
     lc._isA = isA
     lc.setIndentChunk = setIndentChunk
+    lc.clone = clone
 
     return lc
 end

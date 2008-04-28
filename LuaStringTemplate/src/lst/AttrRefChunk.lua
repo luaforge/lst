@@ -106,18 +106,30 @@ local function setIndentChunk(self, chunk)
     self.indentChunk = chunk
 end
 
+local function clone(self)
+    local c = __call(_M, self.attribute, self.property, self.options)
+    c.indentChunks = self.indentChunk
+    -- the enclosing template will be dealt with later
+
+    return c
+end
+
 function __call(self, attribute, property, options)
-    local ac = setmetatable({}, { __tostring = arc_tostring, __eq = eq })
+    local ac = setmetatable({
+        attribute = attribute,
+        property = property,
+        options = options or {},
+        eval = eval,
+        setEnclosingTemplate = setEnclosingTemplate,
+        _isA = isA,
+        setIndentChunk = setIndentChunk,
+        clone = clone
+    }, { 
+        __tostring = arc_tostring, 
+        __eq = eq 
+       }
+    )
     
-    ac.attribute = attribute
-    ac.property = property
-    ac.options = options or {}
-
-    ac.eval = eval
-    ac.setEnclosingTemplate = setEnclosingTemplate
-    ac._isA = isA
-    ac.setIndentChunk = setIndentChunk
-
     if type(ac.options) ~= 'table' then
         error('attribute ref options must be a table, no a ' .. type(options))
     end

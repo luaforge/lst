@@ -64,6 +64,7 @@ function getValue(context, attribute, property)
     assert(attribute)
     property = property or ''
 
+    --print('ap : get attr: ' .. attribute .. ' prop: ' .. property)
     -- If attribute has a period (.), split it up into its consituent 
     -- attribute and property parts as a convenience for the caller
     if property == '' and string_match(attribute, '([%w_]+)[%.](.*)') then
@@ -127,6 +128,8 @@ function getValue(context, attribute, property)
             end
         end
     end
+
+    --print('ap : - got ' .. tostring(v))
 
     return v
 end

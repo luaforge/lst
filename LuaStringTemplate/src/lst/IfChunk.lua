@@ -195,6 +195,27 @@ local function setIndentChunk(self, chunk)
     self.indentChunk = chunk
 end
 
+local function clone(self)
+    local newIfChunks = {}
+    for i,c in ipairs(self.ifBodyChunks) do
+        newIfChunks[i] = c:clone()
+    end
+
+    local newElseChunks = {}
+    for i,c in ipairs(self.elseBodyChunks) do
+        newElseChunks[i] = c:clone()
+    end
+
+    local c = __call(_M, self.attribute, self.property,
+                     newIfChunks, newElseChunks)
+
+    if self.indentChunk then
+        c.indentChunk:clone()
+    end
+
+    return c
+end
+
 function __call(self, attribute, property, ifBodyChunks, elseBodyChunks)
     local ifc = setmetatable({}, { __tostring = ifc_tostring, __eq = eq})
 
@@ -217,6 +238,7 @@ function __call(self, attribute, property, ifBodyChunks, elseBodyChunks)
     ifc.getEnclosingTemplate = getEnclosingTemplate
     ifc._isA = isA
     ifc.setIndentChunk = setIndentChunk
+    ifc.clone = clone
 
     return ifc
 end
