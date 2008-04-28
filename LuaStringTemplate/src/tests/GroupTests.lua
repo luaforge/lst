@@ -482,6 +482,12 @@ t2(foo) ::= <<
 end
 
 function testArgHiding()
+
+    -- In t2() we had to add an extra newline between the <endif> and
+    -- the >> tokens to get everything to parse right.  That extra 
+    -- newline should not be necessary, but so far attempts to get
+    -- the parser to kill it correctly haven't been successful.
+
     writeGroupFile('g15', [=[
 group g15;
 
@@ -495,6 +501,7 @@ t2(foo) ::= <<
 <else>
 <t4(foo=foo)>
 <endif>
+
 >>
 
 t3(foo) ::= <<
@@ -519,14 +526,19 @@ t4(foo) ::= <<
 
     st.bar = nil
     st.bar = { b = "A" }
-    -- FIXME: This is actually a whitespace bug; there shouldn't be a newline
-    local expected = "a A\n c"
+    local expected = "a A c"
     local result = tostring(st)
     assert_not_nil(result)
     assert_equal(expected, result)
 end
 
 function testRecursiveTemplateRef()
+
+    -- In t2() we had to add an extra newline between the <endif> and
+    -- the >> tokens to get everything to parse right.  That extra 
+    -- newline should not be necessary, but so far attempts to get
+    -- the parser to kill it correctly haven't been successful.
+
     writeGroupFile('g16', [=[
 group 16;
 
@@ -540,6 +552,7 @@ t2(f) ::= <<
 <else>
 blah 
 <endif>
+
 >>
 
 t3(c) ::= <<
@@ -560,8 +573,7 @@ yadda <t2(f=c.foos)>
         }
     }
 
-    -- FIXME: There is a whitespace bug; there shouldn't be a newline
-    local expected = "a yadda blah \nyadda yadda  c"
+    local expected = "a yadda blah yadda yadda  c"
     local result = tostring(st)
 
     assert_not_nil(result)

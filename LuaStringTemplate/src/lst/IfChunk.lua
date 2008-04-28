@@ -99,6 +99,13 @@ local function getField(self)
     local attribute = self.attribute
     local property = self.property
     local et = self:getEnclosingTemplate()
+    
+    if et == nil then
+        -- This can happen during testing, and the default behaviour
+        -- for StringTemplate seems to be print nothing if there is
+        -- a problem.
+        return ''
+    end
 
     if string_match(property, '%(.+%)') then
         -- indirect property lookup
